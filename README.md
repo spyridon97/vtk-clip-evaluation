@@ -36,6 +36,10 @@ cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DVTK_SMP_IMPLEMENTATION
 cmake --build . --target clip-par -j
 ```
 
+## Datasets
+
+https://drive.google.com/drive/folders/1RfmTb2kLGVUuX2pHDQN9lg2eYAszVdBs
+
 ## Execution Instructions
 
 ### clip-seq
