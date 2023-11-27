@@ -1,0 +1,105 @@
+Subject: [PATCH] Add pass time
+---
+Index: Filters/General/vtkTableBasedClipDataSet.cxx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Filters/General/vtkTableBasedClipDataSet.cxx b/Filters/General/vtkTableBasedClipDataSet.cxx
+--- a/Filters/General/vtkTableBasedClipDataSet.cxx	(revision a64b3715143bd0248aa58bfc128f8435dcee08a0)
++++ b/Filters/General/vtkTableBasedClipDataSet.cxx	(revision 20910b3ae91c81912f5092c5ded505470365582e)
+@@ -1223,6 +1223,7 @@
+ {
+   const auto inputPoints = input->GetPoints();
+   vtkSmartPointer<vtkDoubleArray> clipArray;
++  auto start = std::chrono::high_resolution_clock::now();
+   if (implicitFunction)
+   {
+     clipArray = vtkSmartPointer<vtkDoubleArray>::New();
+@@ -1235,13 +1236,22 @@
+   {
+     clipArray = scalars;
+   }
++  auto end = std::chrono::high_resolution_clock::now();
++  std::cout << "FunctionValue: "
++            << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms"
++            << std::endl;
+   // Evaluate points and calculate pointBatches, numberOfKeptPoints, pointsMap using clipArray
++  auto start2 = std::chrono::high_resolution_clock::now();
+   EvaluatePoints<TInputIdType, TInsideOut> evaluatePoints(
+     clipArray, isoValue, this->BatchSize, this);
+   vtkSMPTools::For(0, evaluatePoints.PointBatches.GetNumberOfBatches(), evaluatePoints);
+   const TInputIdType numberOfKeptPoints = evaluatePoints.NumberOfKeptPoints;
+   const TableBasedPointBatches& pointBatches = evaluatePoints.PointBatches;
+   vtkSmartPointer<vtkAOSDataArrayTemplate<TInputIdType>> pointsMap = evaluatePoints.PointsMap;
++  auto end2 = std::chrono::high_resolution_clock::now();
++  std::cout << "EvaluatePoints: "
++            << std::chrono::duration_cast<std::chrono::milliseconds>(end2 - start2).count() << "ms"
++            << std::endl;
+   if (implicitFunction && this->GenerateClipScalars)
+   {
+     input->GetPointData()->SetScalars(clipArray);
+@@ -1254,6 +1264,7 @@
+ 
+   // Evaluate cells and calculate connectivitySize, numberOfOutputCells, numberOfCentroids,
+   // cellBatches, cellsCase, edges
++  auto start3 = std::chrono::high_resolution_clock::now();
+   using TEdge = EdgeType<TInputIdType>;
+   EvaluateCells<TGrid, TInputIdType, TInsideOut> evaluateCells(
+     input, clipArray.Get(), isoValue, this->BatchSize, this);
+@@ -1265,7 +1276,12 @@
+   vtkSmartPointer<vtkUnsignedCharArray> cellsCase = evaluateCells.CellsCase;
+   std::vector<TEdge> edges = std::move(evaluateCells.Edges);
+   std::vector<vtkIdType> unsupportedCells = std::move(evaluateCells.UnsupportedCells);
++  auto end3 = std::chrono::high_resolution_clock::now();
++  std::cout << "EvaluateCells: "
++            << std::chrono::duration_cast<std::chrono::milliseconds>(end3 - start3).count() << "ms"
++            << std::endl;
+ 
++  auto start4 = std::chrono::high_resolution_clock::now();
+   // Create Edge locator which will be used to define the connectivity of cells
+   using TEdgeLocator = EdgeLocatorType<TInputIdType>;
+   TEdgeLocator edgeLocator;
+@@ -1273,6 +1289,10 @@
+   {
+     edgeLocator.BuildLocator(static_cast<vtkIdType>(edges.size()), edges.data());
+   }
++  auto end4 = std::chrono::high_resolution_clock::now();
++  std::cout << "BuildLocator: "
++            << std::chrono::duration_cast<std::chrono::milliseconds>(end4 - start4).count() << "ms"
++            << std::endl;
+   const TInputIdType numberOfEdges = edgeLocator.GetNumberOfEdges();
+ 
+   // Calculate total number of output points
+@@ -1310,6 +1330,7 @@
+     /*nullValue*/ 0.0, /*promote*/ false);
+ 
+   // identify the required output id type
++  auto start5 = std::chrono::high_resolution_clock::now();
+   std::vector<Centroid> centroids;
+ #ifdef VTK_USE_64BIT_IDS
+   bool use64BitsIds =
+@@ -1339,7 +1360,12 @@
+     outputCellTypes = extractCells.OutputCellTypes;
+     outputCellArray = extractCells.OutputCellArray;
+   }
++  auto end5 = std::chrono::high_resolution_clock::now();
++  std::cout << "ExtractCells: "
++            << std::chrono::duration_cast<std::chrono::milliseconds>(end5 - start5).count() << "ms"
++            << std::endl;
+   // Extract points and calculate outputPoints and outputPointData.
++  auto start6 = std::chrono::high_resolution_clock::now();
+   ExtractPointsWorker<TInputIdType> extractPointsWorker;
+   using ExtractPointsDispatcher =
+     vtkArrayDispatch::Dispatch2ByValueTypeUsingArrays<vtkArrayDispatch::AllArrays,
+@@ -1352,6 +1378,10 @@
+       pointsMap.Get(), pointDataArrays, edges, centroids, numberOfKeptPoints, numberOfEdges,
+       numberOfCentroids, this);
+   }
++  auto end6 = std::chrono::high_resolution_clock::now();
++  std::cout << "ExtractPoints: "
++          << std::chrono::duration_cast<std::chrono::milliseconds>(end6 - start6).count() << "ms"
++          << std::endl;
+ 
+   // create outputClippedCells
+   auto outputClippedCells = vtkSmartPointer<vtkUnstructuredGrid>::New();

@@ -1,0 +1,38 @@
+Subject: [PATCH] Configurable batch size
+---
+Index: clip-par/main.cxx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/clip-par/main.cxx b/clip-par/main.cxx
+--- a/clip-par/main.cxx	(revision 5bbe7c700a3ffa62d94102bf7b24d4085ef0ecdc)
++++ b/clip-par/main.cxx	(revision 9ce50be4d4a4d3fb292d3a365369c2bc3df7aaa0)
+@@ -27,9 +27,9 @@
+ 
+ int main(int argc, char** argv)
+ {
+-  if (argc < 5)
++  if (argc < 6)
+   {
+-    std::cerr << "Usage: " << argv[0] << " filename percentage numberOfIterations numberOfThreads"
++    std::cerr << "Usage: " << argv[0] << " filename percentage numberOfIterations numberOfThreads batchSize"
+               << std::endl;
+     return EXIT_FAILURE;
+   }
+@@ -37,6 +37,7 @@
+   const double P = std::stod(argv[2]);
+   const int numberOfIterations = std::stoi(argv[3]);
+   const int numberOfThreads = std::stoi(argv[4]);
++  const int batchSize = std::stoi(argv[5]);
+ 
+   if (numberOfThreads <= 1)
+   {
+@@ -80,6 +81,7 @@
+     auto filter = vtkSmartPointer<vtkTableBasedClipDataSet>::New();
+     filter->SetInputConnection(reader->GetOutputPort());
+     filter->SetClipFunction(plane);
++    filter->SetBatchSize(batchSize);
+     filter->Update();
+     auto end = std::chrono::high_resolution_clock::now();
+     totalTime += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
