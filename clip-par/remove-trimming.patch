@@ -1,0 +1,32 @@
+Subject: [PATCH] remove batch trimming
+---
+Index: Filters/General/vtkTableBasedClipDataSet.cxx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Filters/General/vtkTableBasedClipDataSet.cxx b/Filters/General/vtkTableBasedClipDataSet.cxx
+--- a/Filters/General/vtkTableBasedClipDataSet.cxx	(revision a64b3715143bd0248aa58bfc128f8435dcee08a0)
++++ b/Filters/General/vtkTableBasedClipDataSet.cxx	(revision cf31c611d757b177e0a784cb07fae0f228b4c15f)
+@@ -442,8 +442,8 @@
+   void Reduce()
+   {
+     // trim batches with 0 points in-place
+-    this->PointBatches.TrimBatches(
+-      [](const TableBasedPointBatch& batch) { return batch.Data.PointsOffset == 0; });
++    // this->PointBatches.TrimBatches(
++    //   [](const TableBasedPointBatch& batch) { return batch.Data.PointsOffset == 0; });
+ 
+     // assign beginPointsOffset for each batch
+     const auto globalSum = this->PointBatches.BuildOffsetsAndGetGlobalSum();
+@@ -720,8 +720,8 @@
+   void Reduce()
+   {
+     // trim batches with 0 cells in-place
+-    this->CellBatches.TrimBatches(
+-      [](const TableBasedCellBatch& batch) { return batch.Data.CellsOffset == 0; });
++    // this->CellBatches.TrimBatches(
++    //   [](const TableBasedCellBatch& batch) { return batch.Data.CellsOffset == 0; });
+ 
+     // assign beginCellsOffset/BeginCellsConnectivity/BeginCentroid for each batch
+     const auto globalSum = this->CellBatches.BuildOffsetsAndGetGlobalSum();

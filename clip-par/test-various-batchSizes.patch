@@ -1,0 +1,60 @@
+Subject: [PATCH] Test Various BatchSizes
+---
+Index: clip-par/main.cxx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/clip-par/main.cxx b/clip-par/main.cxx
+--- a/clip-par/main.cxx	(revision ac993e40c44b2c798c613d1c9a4bcb1c868e3377)
++++ b/clip-par/main.cxx	(revision 81b78721269049aa39776893c1e90d0a11d1bc7c)
+@@ -70,26 +70,30 @@
+   vtksys::SystemInformation sysinfo;
+   const auto memoryUsedBeforeFilter = sysinfo.GetProcMemoryUsed();
+   std::cout << "Memory used by dataset in KB: " << memoryUsedBeforeFilter << std::endl;
+-  size_t totalTime = 0;
+-  for (int i = 0; i < numberOfIterations; ++i)
+-  {
+-    vtkNew<vtkPlane> plane;
+-    plane->SetOrigin(origin);
+-    plane->SetNormal(normal);
+-    auto start = std::chrono::high_resolution_clock::now();
+-    auto filter = vtkSmartPointer<vtkTableBasedClipDataSet>::New();
+-    filter->SetInputConnection(reader->GetOutputPort());
+-    filter->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
+-    filter->SetClipFunction(plane);
+-    filter->Update();
+-    auto end = std::chrono::high_resolution_clock::now();
+-    totalTime += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+-    std::cout << "Number of output cells: " << filter->GetOutput()->GetNumberOfCells() << std::endl;
+-    std::cout << "Number of output points: " << filter->GetOutput()->GetNumberOfPoints()
+-              << std::endl;
+-    filter = nullptr;
++  std::vector<unsigned int> batchSizes = { 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
++    1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000 };
++  for (const auto& batchSize : batchSizes)
++  {
++    size_t totalTime = 0;
++    for (int i = 0; i < numberOfIterations; ++i)
++    {
++      vtkNew<vtkPlane> plane;
++      plane->SetOrigin(origin);
++      plane->SetNormal(normal);
++      auto start = std::chrono::high_resolution_clock::now();
++      auto filter = vtkSmartPointer<vtkTableBasedClipDataSet>::New();
++      filter->SetInputConnection(reader->GetOutputPort());
++      filter->SetOutputPointsPrecision(vtkAlgorithm::SINGLE_PRECISION);
++      filter->SetClipFunction(plane);
++      filter->SetBatchSize(batchSize);
++      filter->Update();
++      auto end = std::chrono::high_resolution_clock::now();
++      totalTime += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
++      filter = nullptr;
++    }
++    std::cout << "BatchSize: " << batchSize << ", Time: " << totalTime / numberOfIterations
++              << std::endl;
+   }
+-  std::cout << "Time: " << totalTime / numberOfIterations << std::endl;
+ 
+   return EXIT_SUCCESS;
+ }
