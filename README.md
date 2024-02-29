@@ -39,7 +39,7 @@ cd .. && \
 cmake --build . --target clip-par -j
 ```
 
-## Datasets
+## Datasets and Docker Image
 
 https://drive.google.com/drive/folders/1RfmTb2kLGVUuX2pHDQN9lg2eYAszVdBs
 
@@ -51,14 +51,32 @@ https://drive.google.com/drive/folders/1RfmTb2kLGVUuX2pHDQN9lg2eYAszVdBs
 /usr/bin/time -vv ./clip-seq/build/clip-seq inputFile percentage numberOfIterations
 ```
 
+or
+
+```bash
+docker run -v $(pwd):/data/ vtk-clip-evaluation /usr/bin/time -vv clip-seq inputFile percentage numberOfIterations numberOfThreads
+```
+
 ### clip-m-par
 
 ```bash
 /usr/bin/time -vv ./clip-m-par/build/clip-m-par inputFile percentage numberOfIterations numberOfThreads
 ```
 
+or
+
+```bash
+docker run -v $(pwd):/data/ vtk-clip-evaluation /usr/bin/time -vv clip-m-par inputFile percentage numberOfIterations numberOfThreads
+```
+
 ### clip-par
 
 ```bash
 /usr/bin/time -vv ./clip-par/build/clip-par inputFile percentage numberOfIterations numberOfThreads
+```
+
+or
+
+```bash
+docker run -v $(pwd):/data/ vtk-clip-evaluation /usr/bin/time -vv clip-par inputFile percentage numberOfIterations numberOfThreads
 ```
