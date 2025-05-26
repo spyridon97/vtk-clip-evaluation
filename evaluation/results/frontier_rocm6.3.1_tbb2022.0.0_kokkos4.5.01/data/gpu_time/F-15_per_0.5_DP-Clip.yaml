@@ -1,0 +1,61 @@
+- vtk-version: 9.4.1-1403-g5bf50f4507
+  vtkm-version: 2.2.0-149-g4be31777c
+  hostname: frontier10495
+  date: 2025-05-28T09:42:50-0400
+  device: Kokkos
+  num-threads: 128
+  input-file: /ccs/home/spyridon97/Data/F-15.vtu
+  topology-connections: regular
+  num-input-points: 116414075
+  num-input-cells: 246056538
+  percentage: 0.5
+  clip-origin: 400.000000, -6000.000000, 0.000000
+  clip-normal: 1.000000, 0.000000, 0.000000
+  dataset-memory-used: 11106364
+  experiments:
+    - algorithm-name: DP-Clip
+      batch-size: 6
+      num-output-points: 90984269
+      num-output-cells: 191968950
+      first-run-time: 1.9162
+      trials:
+        - trial-index: 0
+          seconds-clip: 2.44898
+          seconds-mapping: 0.030862
+          seconds-total: 2.47984
+        - trial-index: 1
+          seconds-clip: 2.5076
+          seconds-mapping: 0.030875
+          seconds-total: 2.53848
+        - trial-index: 2
+          seconds-clip: 2.5077
+          seconds-mapping: 0.030855
+          seconds-total: 2.53855
+        - trial-index: 3
+          seconds-clip: 2.50765
+          seconds-mapping: 0.030818
+          seconds-total: 2.53847
+        - trial-index: 4
+          seconds-clip: 2.50771
+          seconds-mapping: 0.030816
+          seconds-total: 2.53853
+        - trial-index: 5
+          seconds-clip: 2.50778
+          seconds-mapping: 0.030811
+          seconds-total: 2.53859
+        - trial-index: 6
+          seconds-clip: 2.50766
+          seconds-mapping: 0.03096
+          seconds-total: 2.53862
+        - trial-index: 7
+          seconds-clip: 2.50734
+          seconds-mapping: 0.03095
+          seconds-total: 2.53829
+        - trial-index: 8
+          seconds-clip: 2.50711
+          seconds-mapping: 0.030964
+          seconds-total: 2.53808
+        - trial-index: 9
+          seconds-clip: 2.50748
+          seconds-mapping: 0.031276
+          seconds-total: 2.53875
