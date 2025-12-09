@@ -4,27 +4,27 @@
 
 #include "Arguments.h"
 #include "CLI/CLI.hpp"
-#include "vtkm/cont/DeviceAdapterTag.h"
-#include "vtkm/cont/RuntimeDeviceTracker.h"
+#include "viskores/cont/DeviceAdapterTag.h"
+#include "viskores/cont/RuntimeDeviceTracker.h"
 
 #include <thread>
 
 namespace
 {
-bool DeviceIsAvailable(vtkm::cont::DeviceAdapterId id)
+bool DeviceIsAvailable(viskores::cont::DeviceAdapterId id)
 {
-  if (id == vtkm::cont::DeviceAdapterTagAny{})
+  if (id == viskores::cont::DeviceAdapterTagAny{})
   {
     return true;
   }
 
-  if (id.GetValue() <= 0 || id.GetValue() >= VTKM_MAX_DEVICE_ADAPTER_ID ||
-    id == vtkm::cont::DeviceAdapterTagUndefined{})
+  if (id.GetValue() <= 0 || id.GetValue() >= VISKORES_MAX_DEVICE_ADAPTER_ID ||
+    id == viskores::cont::DeviceAdapterTagUndefined{})
   {
     return false;
   }
 
-  auto& tracker = vtkm::cont::GetRuntimeDeviceTracker();
+  auto& tracker = viskores::cont::GetRuntimeDeviceTracker();
   bool result = false;
   try
   {
@@ -42,9 +42,9 @@ std::string GetValidDeviceNames()
   std::ostringstream names;
   names << "\"Any\" ";
 
-  for (vtkm::Int8 i = 0; i < VTKM_MAX_DEVICE_ADAPTER_ID; ++i)
+  for (viskores::Int8 i = 0; i < VISKORES_MAX_DEVICE_ADAPTER_ID; ++i)
   {
-    auto id = vtkm::cont::make_DeviceAdapterId(i);
+    auto id = viskores::cont::make_DeviceAdapterId(i);
     if (DeviceIsAvailable(id))
     {
       names << "\"" << id.GetName() << "\" ";

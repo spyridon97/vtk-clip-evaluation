@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Repository for the evaluation of the external facelist calculation algorithms in VTK/Viskores.
+Repository for the evaluation of the clip calculation algorithms in VTK/Viskores.
 
 The algorithms that are evaluated are the following:
 

@@ -7,31 +7,32 @@
 //  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 //  PURPOSE.  See the above copyright notice for more information.
 //============================================================================
-#ifndef vtkm_m_worklet_ClipDPClip_h
-#define vtkm_m_worklet_ClipDPClip_h
+#ifndef viskores_worklet_ClipDPClip_h
+#define viskores_worklet_ClipDPClip_h
 
-#include <vtkm/filter/clean_grid/worklet/RemoveUnusedPoints.h>
-#include <vtkm/filter/contour/worklet/clip/ClipTables.h>
-#include <vtkm/worklet/Keys.h>
-#include <vtkm/worklet/WorkletMapField.h>
-#include <vtkm/worklet/WorkletMapTopology.h>
-#include <vtkm/worklet/WorkletReduceByKey.h>
+#include <viskores/filter/clean_grid/worklet/RemoveUnusedPoints.h>
+#include <viskores/filter/contour/worklet/clip/ClipTables.h>
+#include <viskores/worklet/Keys.h>
+#include <viskores/worklet/WorkletMapField.h>
+#include <viskores/worklet/WorkletMapTopology.h>
+#include <viskores/worklet/WorkletReduceByKey.h>
 
-#include <vtkm/cont/Algorithm.h>
-#include <vtkm/cont/ArrayCopy.h>
-#include <vtkm/cont/ArrayHandlePermutation.h>
-#include <vtkm/cont/ArrayHandleView.h>
-#include <vtkm/cont/CellSetExplicit.h>
-#include <vtkm/cont/ConvertNumComponentsToOffsets.h>
-#include <vtkm/cont/CoordinateSystem.h>
-#include <vtkm/cont/Invoker.h>
-#include <vtkm/cont/Timer.h>
-#include <vtkm/cont/UnknownArrayHandle.h>
+#include <viskores/ImplicitFunction.h>
+#include <viskores/cont/Algorithm.h>
+#include <viskores/cont/ArrayCopy.h>
+#include <viskores/cont/ArrayHandlePermutation.h>
+#include <viskores/cont/ArrayHandleView.h>
+#include <viskores/cont/CellSetExplicit.h>
+#include <viskores/cont/ConvertNumComponentsToOffsets.h>
+#include <viskores/cont/CoordinateSystem.h>
+#include <viskores/cont/Invoker.h>
+#include <viskores/cont/Timer.h>
+#include <viskores/cont/UnknownArrayHandle.h>
 
-#include <vtkm/ImplicitFunction.h>
+#include "ClipTablesDPClip.h"
 
 #include <utility>
-#include <vtkm/exec/FunctorBase.h>
+#include <viskores/exec/FunctorBase.h>
 
 #include "YamlWriter.h"
 
@@ -39,32 +40,32 @@
   THRUST_SUBMINOR_VERSION < 3
 // Workaround a bug in thrust 1.8.0 - 1.8.2 scan implementations which produces
 // wrong results
-#include <vtkm/exec/cuda/internal/ThrustPatches.h>
-VTKM_THIRDPARTY_PRE_INCLUDE
+#include <viskores/exec/cuda/internalDP/ThrustPatches.h>
+VISKORES_THIRDPARTY_PRE_INCLUDE
 #include <thrust/detail/type_traits.h>
-VTKM_THIRDPARTY_POST_INCLUDE
+VISKORES_THIRDPARTY_POST_INCLUDE
 #define THRUST_SCAN_WORKAROUND
 #endif
 
-namespace vtkm
+namespace viskores
 {
 namespace worklet
 {
 struct ClipStats
 {
-  vtkm::Id NumberOfCells = 0;
-  vtkm::Id NumberOfIndices = 0;
-  vtkm::Id NumberOfEdgeIndices = 0;
+  viskores::Id NumberOfCells = 0;
+  viskores::Id NumberOfIndices = 0;
+  viskores::Id NumberOfEdgeIndices = 0;
 
   // Stats for interpolating new points within cell.
-  vtkm::Id NumberOfInCellPoints = 0;
-  vtkm::Id NumberOfInCellIndices = 0;
-  vtkm::Id NumberOfInCellInterpPoints = 0;
-  vtkm::Id NumberOfInCellEdgeIndices = 0;
+  viskores::Id NumberOfInCellPoints = 0;
+  viskores::Id NumberOfInCellIndices = 0;
+  viskores::Id NumberOfInCellInterpPoints = 0;
+  viskores::Id NumberOfInCellEdgeIndices = 0;
 
   struct SumOp
   {
-    VTKM_EXEC_CONT
+    VISKORES_EXEC_CONT
     ClipStats operator()(const ClipStats& stat1, const ClipStats& stat2) const
     {
       ClipStats sum = stat1;
@@ -82,13 +83,13 @@ struct ClipStats
 
 struct EdgeInterpolation
 {
-  vtkm::Id Vertex1 = -1;
-  vtkm::Id Vertex2 = -1;
-  vtkm::Float64 Weight = 0;
+  viskores::Id Vertex1 = -1;
+  viskores::Id Vertex2 = -1;
+  viskores::Float64 Weight = 0;
 
   struct LessThanOp
   {
-    VTKM_EXEC
+    VISKORES_EXEC
     bool operator()(const EdgeInterpolation& v1, const EdgeInterpolation& v2) const
     {
       return (v1.Vertex1 < v2.Vertex1) || (v1.Vertex1 == v2.Vertex1 && v1.Vertex2 < v2.Vertex2);
@@ -97,7 +98,7 @@ struct EdgeInterpolation
 
   struct EqualToOp
   {
-    VTKM_EXEC
+    VISKORES_EXEC
     bool operator()(const EdgeInterpolation& v1, const EdgeInterpolation& v2) const
     {
       return v1.Vertex1 == v2.Vertex1 && v1.Vertex2 == v2.Vertex2;
@@ -105,18 +106,18 @@ struct EdgeInterpolation
   };
 };
 
-namespace internal
+namespace internalDP
 {
 
 template <typename T>
-VTKM_EXEC_CONT T Scale(const T& val, vtkm::Float64 scale)
+VISKORES_EXEC_CONT T Scale(const T& val, viskores::Float64 scale)
 {
-  return static_cast<T>(scale * static_cast<vtkm::Float64>(val));
+  return static_cast<T>(scale * static_cast<viskores::Float64>(val));
 }
 
-template <typename T, vtkm::IdComponent NumComponents>
-VTKM_EXEC_CONT vtkm::Vec<T, NumComponents> Scale(
-  const vtkm::Vec<T, NumComponents>& val, vtkm::Float64 scale)
+template <typename T, viskores::IdComponent NumComponents>
+VISKORES_EXEC_CONT viskores::Vec<T, NumComponents> Scale(
+  const viskores::Vec<T, NumComponents>& val, viskores::Float64 scale)
 {
   return val * scale;
 }
@@ -125,19 +126,21 @@ template <typename Device>
 class ExecutionConnectivityExplicit
 {
 private:
-  using UInt8Portal = typename vtkm::cont::ArrayHandle<vtkm::UInt8>::WritePortalType;
-  using IdComponentPortal = typename vtkm::cont::ArrayHandle<vtkm::IdComponent>::WritePortalType;
-  using IdPortal = typename vtkm::cont::ArrayHandle<vtkm::Id>::WritePortalType;
+  using UInt8Portal = typename viskores::cont::ArrayHandle<viskores::UInt8>::WritePortalType;
+  using IdComponentPortal =
+    typename viskores::cont::ArrayHandle<viskores::IdComponent>::WritePortalType;
+  using IdPortal = typename viskores::cont::ArrayHandle<viskores::Id>::WritePortalType;
 
 public:
-  VTKM_CONT
+  VISKORES_CONT
   ExecutionConnectivityExplicit() = default;
 
-  VTKM_CONT
-  ExecutionConnectivityExplicit(vtkm::cont::ArrayHandle<vtkm::UInt8> shapes,
-    vtkm::cont::ArrayHandle<vtkm::IdComponent> numberOfIndices,
-    vtkm::cont::ArrayHandle<vtkm::Id> connectivity, vtkm::cont::ArrayHandle<vtkm::Id> offsets,
-    ClipStats stats, vtkm::cont::Token& token)
+  VISKORES_CONT
+  ExecutionConnectivityExplicit(viskores::cont::ArrayHandle<viskores::UInt8> shapes,
+    viskores::cont::ArrayHandle<viskores::IdComponent> numberOfIndices,
+    viskores::cont::ArrayHandle<viskores::Id> connectivity,
+    viskores::cont::ArrayHandle<viskores::Id> offsets, ClipStats stats,
+    viskores::cont::Token& token)
     : Shapes(shapes.PrepareForOutput(stats.NumberOfCells, Device(), token))
     , NumberOfIndices(numberOfIndices.PrepareForOutput(stats.NumberOfCells, Device(), token))
     , Connectivity(connectivity.PrepareForOutput(stats.NumberOfIndices, Device(), token))
@@ -145,23 +148,26 @@ public:
   {
   }
 
-  VTKM_EXEC
-  void SetCellShape(vtkm::Id cellIndex, vtkm::UInt8 shape) { this->Shapes.Set(cellIndex, shape); }
+  VISKORES_EXEC
+  void SetCellShape(viskores::Id cellIndex, viskores::UInt8 shape)
+  {
+    this->Shapes.Set(cellIndex, shape);
+  }
 
-  VTKM_EXEC
-  void SetNumberOfIndices(vtkm::Id cellIndex, vtkm::IdComponent numIndices)
+  VISKORES_EXEC
+  void SetNumberOfIndices(viskores::Id cellIndex, viskores::IdComponent numIndices)
   {
     this->NumberOfIndices.Set(cellIndex, numIndices);
   }
 
-  VTKM_EXEC
-  void SetIndexOffset(vtkm::Id cellIndex, vtkm::Id indexOffset)
+  VISKORES_EXEC
+  void SetIndexOffset(viskores::Id cellIndex, viskores::Id indexOffset)
   {
     this->Offsets.Set(cellIndex, indexOffset);
   }
 
-  VTKM_EXEC
-  void SetConnectivity(vtkm::Id connectivityIndex, vtkm::Id pointIndex)
+  VISKORES_EXEC
+  void SetConnectivity(viskores::Id connectivityIndex, viskores::Id pointIndex)
   {
     this->Connectivity.Set(connectivityIndex, pointIndex);
   }
@@ -173,17 +179,17 @@ private:
   IdPortal Offsets;
 };
 
-class ConnectivityExplicit : vtkm::cont::ExecutionObjectBase
+class ConnectivityExplicit : viskores::cont::ExecutionObjectBase
 {
 public:
-  VTKM_CONT
+  VISKORES_CONT
   ConnectivityExplicit() = default;
 
-  VTKM_CONT
-  ConnectivityExplicit(const vtkm::cont::ArrayHandle<vtkm::UInt8>& shapes,
-    const vtkm::cont::ArrayHandle<vtkm::IdComponent>& numberOfIndices,
-    const vtkm::cont::ArrayHandle<vtkm::Id>& connectivity,
-    const vtkm::cont::ArrayHandle<vtkm::Id>& offsets, const ClipStats& stats)
+  VISKORES_CONT
+  ConnectivityExplicit(const viskores::cont::ArrayHandle<viskores::UInt8>& shapes,
+    const viskores::cont::ArrayHandle<viskores::IdComponent>& numberOfIndices,
+    const viskores::cont::ArrayHandle<viskores::Id>& connectivity,
+    const viskores::cont::ArrayHandle<viskores::Id>& offsets, const ClipStats& stats)
     : Shapes(shapes)
     , NumberOfIndices(numberOfIndices)
     , Connectivity(connectivity)
@@ -193,8 +199,8 @@ public:
   }
 
   template <typename Device>
-  VTKM_CONT ExecutionConnectivityExplicit<Device> PrepareForExecution(
-    Device, vtkm::cont::Token& token) const
+  VISKORES_CONT ExecutionConnectivityExplicit<Device> PrepareForExecution(
+    Device, viskores::cont::Token& token) const
   {
     ExecutionConnectivityExplicit<Device> execConnectivity(
       this->Shapes, this->NumberOfIndices, this->Connectivity, this->Offsets, this->Stats, token);
@@ -202,28 +208,28 @@ public:
   }
 
 private:
-  vtkm::cont::ArrayHandle<vtkm::UInt8> Shapes;
-  vtkm::cont::ArrayHandle<vtkm::IdComponent> NumberOfIndices;
-  vtkm::cont::ArrayHandle<vtkm::Id> Connectivity;
-  vtkm::cont::ArrayHandle<vtkm::Id> Offsets;
-  vtkm::worklet::ClipStats Stats;
+  viskores::cont::ArrayHandle<viskores::UInt8> Shapes;
+  viskores::cont::ArrayHandle<viskores::IdComponent> NumberOfIndices;
+  viskores::cont::ArrayHandle<viskores::Id> Connectivity;
+  viskores::cont::ArrayHandle<viskores::Id> Offsets;
+  viskores::worklet::ClipStats Stats;
 };
 
-} // namespace internal
+} // namespace internalDP
 
 class ClipDPClip
 {
   // Add support for invert
 public:
-  using TypeClipStats = vtkm::List<ClipStats>;
+  using TypeClipStats = viskores::List<ClipStats>;
 
-  using TypeEdgeInterp = vtkm::List<EdgeInterpolation>;
+  using TypeEdgeInterp = viskores::List<EdgeInterpolation>;
 
-  class ComputeStats : public vtkm::worklet::WorkletVisitCellsWithPoints
+  class ComputeStats : public viskores::worklet::WorkletVisitCellsWithPoints
   {
   public:
-    VTKM_CONT
-    ComputeStats(vtkm::Float64 value, bool invert)
+    VISKORES_CONT
+    ComputeStats(viskores::Float64 value, bool invert)
       : Value(value)
       , Invert(invert)
     {
@@ -237,34 +243,34 @@ public:
     using InputDomain = _1;
 
     template <typename CellShapeTag, typename ScalarFieldVec, typename DeviceAdapter>
-    VTKM_EXEC void operator()(CellShapeTag shape, vtkm::IdComponent pointCount,
+    VISKORES_EXEC void operator()(CellShapeTag shape, viskores::IdComponent pointCount,
       const ScalarFieldVec& scalars,
-      const internal::ClipTables::DevicePortal<DeviceAdapter>& clippingData, ClipStats& clipStat,
-      vtkm::Id& clipDataIndex) const
+      const internalDP::ClipTables::DevicePortal<DeviceAdapter>& clippingData, ClipStats& clipStat,
+      viskores::Id& clipDataIndex) const
     {
       (void)shape; // C4100 false positive workaround
-      vtkm::Id caseId = 0;
-      for (vtkm::IdComponent iter = pointCount - 1; iter >= 0; iter--)
+      viskores::Id caseId = 0;
+      for (viskores::IdComponent iter = pointCount - 1; iter >= 0; iter--)
       {
-        if (!this->Invert && static_cast<vtkm::Float64>(scalars[iter]) <= this->Value)
+        if (!this->Invert && static_cast<viskores::Float64>(scalars[iter]) <= this->Value)
         {
           caseId++;
         }
-        else if (this->Invert && static_cast<vtkm::Float64>(scalars[iter]) >= this->Value)
+        else if (this->Invert && static_cast<viskores::Float64>(scalars[iter]) >= this->Value)
         {
           caseId++;
         }
         if (iter > 0)
           caseId *= 2;
       }
-      vtkm::Id index = clippingData.GetCaseIndex(shape.Id, caseId);
+      viskores::Id index = clippingData.GetCaseIndex(shape.Id, caseId);
       clipDataIndex = index;
-      vtkm::Id numberOfCells = clippingData.ValueAt(index++);
+      viskores::Id numberOfCells = clippingData.ValueAt(index++);
       clipStat.NumberOfCells = numberOfCells;
-      for (vtkm::IdComponent shapes = 0; shapes < numberOfCells; shapes++)
+      for (viskores::IdComponent shapes = 0; shapes < numberOfCells; shapes++)
       {
-        vtkm::Id cellShape = clippingData.ValueAt(index++);
-        vtkm::Id numberOfIndices = clippingData.ValueAt(index++);
+        viskores::Id cellShape = clippingData.ValueAt(index++);
+        viskores::Id numberOfIndices = clippingData.ValueAt(index++);
         if (cellShape == 0)
         {
           --clipStat.NumberOfCells;
@@ -272,10 +278,10 @@ public:
           // Gather stats for later operation.
           clipStat.NumberOfInCellPoints = 1;
           clipStat.NumberOfInCellInterpPoints = numberOfIndices;
-          for (vtkm::IdComponent points = 0; points < numberOfIndices; points++, index++)
+          for (viskores::IdComponent points = 0; points < numberOfIndices; points++, index++)
           {
             // Find how many points need to be calculated using edge interpolation.
-            vtkm::Id element = clippingData.ValueAt(index);
+            viskores::Id element = clippingData.ValueAt(index);
             clipStat.NumberOfInCellEdgeIndices += (element < 100) ? 1 : 0;
           }
         }
@@ -284,10 +290,10 @@ public:
           // Collect number of indices required for storing current shape
           clipStat.NumberOfIndices += numberOfIndices;
           // Collect number of new points
-          for (vtkm::IdComponent points = 0; points < numberOfIndices; points++, index++)
+          for (viskores::IdComponent points = 0; points < numberOfIndices; points++, index++)
           {
             // Find how many points need to found using edge interpolation.
-            vtkm::Id element = clippingData.ValueAt(index);
+            viskores::Id element = clippingData.ValueAt(index);
             if (element == 255)
             {
               clipStat.NumberOfInCellIndices++;
@@ -302,15 +308,15 @@ public:
     }
 
   private:
-    vtkm::Float64 Value;
+    viskores::Float64 Value;
     bool Invert;
   };
 
-  class GenerateCellSet : public vtkm::worklet::WorkletVisitCellsWithPoints
+  class GenerateCellSet : public viskores::worklet::WorkletVisitCellsWithPoints
   {
   public:
-    VTKM_CONT
-    GenerateCellSet(vtkm::Float64 value)
+    VISKORES_CONT
+    GenerateCellSet(viskores::Float64 value)
       : Value(value)
     {
     }
@@ -329,9 +335,10 @@ public:
     template <typename CellShapeTag, typename PointVecType, typename ScalarVecType,
       typename ConnectivityObject, typename IdArrayType, typename EdgeInterpolationPortalType,
       typename DeviceAdapter>
-    VTKM_EXEC void operator()(CellShapeTag shape, vtkm::Id workIndex, const PointVecType& points,
-      const ScalarVecType& scalars, vtkm::Id clipDataIndex, const ClipStats& clipStats,
-      const internal::ClipTables::DevicePortal<DeviceAdapter>& clippingData,
+    VISKORES_EXEC void operator()(CellShapeTag shape, viskores::Id workIndex,
+      const PointVecType& points, const ScalarVecType& scalars, viskores::Id clipDataIndex,
+      const ClipStats& clipStats,
+      const internalDP::ClipTables::DevicePortal<DeviceAdapter>& clippingData,
       ConnectivityObject& connectivityObject, IdArrayType& pointsOnlyConnectivityIndices,
       IdArrayType& edgePointReverseConnectivity,
       EdgeInterpolationPortalType& edgePointInterpolation, IdArrayType& inCellReverseConnectivity,
@@ -340,27 +347,27 @@ public:
       IdArrayType& inCellInterpolationInfo, IdArrayType& cellMapOutputToInput) const
     {
       (void)shape;
-      vtkm::Id clipIndex = clipDataIndex;
+      viskores::Id clipIndex = clipDataIndex;
       // Start index for the cells of this case.
-      vtkm::Id cellIndex = clipStats.NumberOfCells;
+      viskores::Id cellIndex = clipStats.NumberOfCells;
       // Start index to store connevtivity of this case.
-      vtkm::Id connectivityIndex = clipStats.NumberOfIndices;
+      viskores::Id connectivityIndex = clipStats.NumberOfIndices;
       // Start indices for reverse mapping into connectivity for this case.
-      vtkm::Id edgeIndex = clipStats.NumberOfEdgeIndices;
-      vtkm::Id inCellIndex = clipStats.NumberOfInCellIndices;
-      vtkm::Id inCellPoints = clipStats.NumberOfInCellPoints;
+      viskores::Id edgeIndex = clipStats.NumberOfEdgeIndices;
+      viskores::Id inCellIndex = clipStats.NumberOfInCellIndices;
+      viskores::Id inCellPoints = clipStats.NumberOfInCellPoints;
       // Start Indices to keep track of interpolation points for new cell.
-      vtkm::Id inCellInterpPointIndex = clipStats.NumberOfInCellInterpPoints;
-      vtkm::Id inCellEdgeInterpIndex = clipStats.NumberOfInCellEdgeIndices;
+      viskores::Id inCellInterpPointIndex = clipStats.NumberOfInCellInterpPoints;
+      viskores::Id inCellEdgeInterpIndex = clipStats.NumberOfInCellEdgeIndices;
       // Start index of connectivityPointsOnly
-      vtkm::Id pointsOnlyConnectivityIndicesIndex = connectivityIndex - edgeIndex - inCellIndex;
+      viskores::Id pointsOnlyConnectivityIndicesIndex = connectivityIndex - edgeIndex - inCellIndex;
 
       // Iterate over the shapes for the current cell and begin to fill connectivity.
-      vtkm::Id numberOfCells = clippingData.ValueAt(clipIndex++);
-      for (vtkm::Id cell = 0; cell < numberOfCells; ++cell)
+      viskores::Id numberOfCells = clippingData.ValueAt(clipIndex++);
+      for (viskores::Id cell = 0; cell < numberOfCells; ++cell)
       {
-        vtkm::UInt8 cellShape = clippingData.ValueAt(clipIndex++);
-        vtkm::IdComponent numberOfPoints = clippingData.ValueAt(clipIndex++);
+        viskores::UInt8 cellShape = clippingData.ValueAt(clipIndex++);
+        viskores::IdComponent numberOfPoints = clippingData.ValueAt(clipIndex++);
         if (cellShape == 0)
         {
           // Case for a new cell point.
@@ -374,11 +381,11 @@ public:
           //    - Reverse connectivity map for new points.
           // Make an array which has all the elements that need to be used
           // for interpolation.
-          for (vtkm::IdComponent point = 0; point < numberOfPoints;
+          for (viskores::IdComponent point = 0; point < numberOfPoints;
             point++, inCellInterpPointIndex++, clipIndex++)
           {
-            vtkm::IdComponent entry =
-              static_cast<vtkm::IdComponent>(clippingData.ValueAt(clipIndex));
+            viskores::IdComponent entry =
+              static_cast<viskores::IdComponent>(clippingData.ValueAt(clipIndex));
             inCellInterpolationKeys.Set(inCellInterpPointIndex, workIndex);
             if (entry >= 100)
             {
@@ -386,9 +393,9 @@ public:
             }
             else
             {
-              internal::ClipTables::EdgeVec edge = clippingData.GetEdge(shape.Id, entry);
-              VTKM_ASSERT(edge[0] != 255);
-              VTKM_ASSERT(edge[1] != 255);
+              internalDP::ClipTables::EdgeVec edge = clippingData.GetEdge(shape.Id, entry);
+              VISKORES_ASSERT(edge[0] != 255);
+              VISKORES_ASSERT(edge[1] != 255);
               EdgeInterpolation ei;
               ei.Vertex1 = points[edge[0]];
               ei.Vertex2 = points[edge[1]];
@@ -398,8 +405,8 @@ public:
                 this->swap(ei.Vertex1, ei.Vertex2);
                 this->swap(edge[0], edge[1]);
               }
-              ei.Weight = (static_cast<vtkm::Float64>(scalars[edge[0]]) - this->Value) /
-                static_cast<vtkm::Float64>(scalars[edge[1]] - scalars[edge[0]]);
+              ei.Weight = (static_cast<viskores::Float64>(scalars[edge[0]]) - this->Value) /
+                static_cast<viskores::Float64>(scalars[edge[1]] - scalars[edge[0]]);
 
               inCellEdgeReverseConnectivity.Set(inCellEdgeInterpIndex, inCellInterpPointIndex);
               inCellEdgeInterpolation.Set(inCellEdgeInterpIndex, ei);
@@ -424,10 +431,10 @@ public:
           connectivityObject.SetCellShape(cellIndex, cellShape);
           connectivityObject.SetNumberOfIndices(cellIndex, numberOfPoints);
           connectivityObject.SetIndexOffset(cellIndex, connectivityIndex);
-          for (vtkm::IdComponent point = 0; point < numberOfPoints; point++, clipIndex++)
+          for (viskores::IdComponent point = 0; point < numberOfPoints; point++, clipIndex++)
           {
-            vtkm::IdComponent entry =
-              static_cast<vtkm::IdComponent>(clippingData.ValueAt(clipIndex));
+            viskores::IdComponent entry =
+              static_cast<viskores::IdComponent>(clippingData.ValueAt(clipIndex));
             if (entry == 255) // case of cell point interpolation
             {
               // Add index of the corresponding cell point.
@@ -443,9 +450,9 @@ public:
             }
             else // case of a new edge point
             {
-              internal::ClipTables::EdgeVec edge = clippingData.GetEdge(shape.Id, entry);
-              VTKM_ASSERT(edge[0] != 255);
-              VTKM_ASSERT(edge[1] != 255);
+              internalDP::ClipTables::EdgeVec edge = clippingData.GetEdge(shape.Id, entry);
+              VISKORES_ASSERT(edge[0] != 255);
+              VISKORES_ASSERT(edge[1] != 255);
               EdgeInterpolation ei;
               ei.Vertex1 = points[edge[0]];
               ei.Vertex2 = points[edge[1]];
@@ -455,8 +462,8 @@ public:
                 this->swap(ei.Vertex1, ei.Vertex2);
                 this->swap(edge[0], edge[1]);
               }
-              ei.Weight = (static_cast<vtkm::Float64>(scalars[edge[0]]) - this->Value) /
-                static_cast<vtkm::Float64>(scalars[edge[1]] - scalars[edge[0]]);
+              ei.Weight = (static_cast<viskores::Float64>(scalars[edge[0]]) - this->Value) /
+                static_cast<viskores::Float64>(scalars[edge[1]] - scalars[edge[0]]);
               // Add to set of new edge points
               // Add reverse connectivity;
               edgePointReverseConnectivity.Set(edgeIndex, connectivityIndex++);
@@ -471,7 +478,7 @@ public:
     }
 
     template <typename T>
-    VTKM_EXEC void swap(T& v1, T& v2) const
+    VISKORES_EXEC void swap(T& v1, T& v2) const
     {
       T temp = v1;
       v1 = v2;
@@ -479,14 +486,14 @@ public:
     }
 
   private:
-    vtkm::Float64 Value;
+    viskores::Float64 Value;
   };
 
-  class ScatterEdgeConnectivity : public vtkm::worklet::WorkletMapField
+  class ScatterEdgeConnectivity : public viskores::worklet::WorkletMapField
   {
   public:
-    VTKM_CONT
-    ScatterEdgeConnectivity(vtkm::Id edgePointOffset)
+    VISKORES_CONT
+    ScatterEdgeConnectivity(viskores::Id edgePointOffset)
       : EdgePointOffset(edgePointOffset)
     {
     }
@@ -499,21 +506,21 @@ public:
     using InputDomain = _1;
 
     template <typename ConnectivityDataType>
-    VTKM_EXEC void operator()(
-      vtkm::Id sourceValue, vtkm::Id destinationIndex, ConnectivityDataType& destinationData) const
+    VISKORES_EXEC void operator()(viskores::Id sourceValue, viskores::Id destinationIndex,
+      ConnectivityDataType& destinationData) const
     {
       destinationData.Set(destinationIndex, (sourceValue + EdgePointOffset));
     }
 
   private:
-    vtkm::Id EdgePointOffset;
+    viskores::Id EdgePointOffset;
   };
 
-  class ScatterInCellConnectivity : public vtkm::worklet::WorkletMapField
+  class ScatterInCellConnectivity : public viskores::worklet::WorkletMapField
   {
   public:
-    VTKM_CONT
-    ScatterInCellConnectivity(vtkm::Id inCellPointOffset)
+    VISKORES_CONT
+    ScatterInCellConnectivity(viskores::Id inCellPointOffset)
       : InCellPointOffset(inCellPointOffset)
     {
     }
@@ -525,15 +532,15 @@ public:
     using InputDomain = _1;
 
     template <typename ConnectivityDataType>
-    VTKM_EXEC void operator()(
-      vtkm::Id destinationIndex, ConnectivityDataType& destinationData) const
+    VISKORES_EXEC void operator()(
+      viskores::Id destinationIndex, ConnectivityDataType& destinationData) const
     {
       auto sourceValue = destinationData.Get(destinationIndex);
       destinationData.Set(destinationIndex, (sourceValue + InCellPointOffset));
     }
 
   private:
-    vtkm::Id InCellPointOffset;
+    viskores::Id InCellPointOffset;
   };
 
   ClipDPClip()
@@ -548,47 +555,47 @@ public:
   }
 
   template <typename CellSetType, typename ScalarsArrayHandle>
-  vtkm::cont::CellSetExplicit<> Run(
-    const CellSetType& cellSet, const ScalarsArrayHandle& scalars, vtkm::Float64 value, bool invert)
+  viskores::cont::CellSetExplicit<> Run(const CellSetType& cellSet,
+    const ScalarsArrayHandle& scalars, viskores::Float64 value, bool invert)
   {
-    vtkm::cont::Invoker invoke;
+    viskores::cont::Invoker invoke;
 
     // Create the required output fields.
-    vtkm::cont::ArrayHandle<ClipStats> clipStats;
-    vtkm::cont::ArrayHandle<vtkm::Id> clipTableIndices;
+    viskores::cont::ArrayHandle<ClipStats> clipStats;
+    viskores::cont::ArrayHandle<viskores::Id> clipTableIndices;
 
     // Send this CellSet to process
     ComputeStats statsWorklet(value, invert);
     invoke(statsWorklet, cellSet, scalars, this->ClipTablesInstance, clipStats, clipTableIndices);
 
     ClipStats zero;
-    vtkm::cont::ArrayHandle<ClipStats> cellSetStats;
+    viskores::cont::ArrayHandle<ClipStats> cellSetStats;
     ClipStats total =
-      vtkm::cont::Algorithm::ScanExclusive(clipStats, cellSetStats, ClipStats::SumOp(), zero);
+      viskores::cont::Algorithm::ScanExclusive(clipStats, cellSetStats, ClipStats::SumOp(), zero);
     clipStats.ReleaseResources();
 
-    vtkm::cont::ArrayHandle<vtkm::UInt8> shapes;
-    vtkm::cont::ArrayHandle<vtkm::IdComponent> numberOfIndices;
-    vtkm::cont::ArrayHandle<vtkm::Id> connectivity;
-    vtkm::cont::ArrayHandle<vtkm::Id> offsets;
-    internal::ConnectivityExplicit connectivityObject(
+    viskores::cont::ArrayHandle<viskores::UInt8> shapes;
+    viskores::cont::ArrayHandle<viskores::IdComponent> numberOfIndices;
+    viskores::cont::ArrayHandle<viskores::Id> connectivity;
+    viskores::cont::ArrayHandle<viskores::Id> offsets;
+    internalDP::ConnectivityExplicit connectivityObject(
       shapes, numberOfIndices, connectivity, offsets, total);
 
     // Begin Process of Constructing the new CellSet.
-    vtkm::cont::ArrayHandle<vtkm::Id> pointsOnlyConnectivityIndices;
+    viskores::cont::ArrayHandle<viskores::Id> pointsOnlyConnectivityIndices;
     pointsOnlyConnectivityIndices.Allocate(
       total.NumberOfIndices - total.NumberOfEdgeIndices - total.NumberOfInCellIndices);
 
-    vtkm::cont::ArrayHandle<vtkm::Id> edgePointReverseConnectivity;
+    viskores::cont::ArrayHandle<viskores::Id> edgePointReverseConnectivity;
     edgePointReverseConnectivity.Allocate(total.NumberOfEdgeIndices);
-    vtkm::cont::ArrayHandle<EdgeInterpolation> edgeInterpolation;
+    viskores::cont::ArrayHandle<EdgeInterpolation> edgeInterpolation;
     edgeInterpolation.Allocate(total.NumberOfEdgeIndices);
 
-    vtkm::cont::ArrayHandle<vtkm::Id> cellPointReverseConnectivity;
+    viskores::cont::ArrayHandle<viskores::Id> cellPointReverseConnectivity;
     cellPointReverseConnectivity.Allocate(total.NumberOfInCellIndices);
-    vtkm::cont::ArrayHandle<vtkm::Id> cellPointEdgeReverseConnectivity;
+    viskores::cont::ArrayHandle<viskores::Id> cellPointEdgeReverseConnectivity;
     cellPointEdgeReverseConnectivity.Allocate(total.NumberOfInCellEdgeIndices);
-    vtkm::cont::ArrayHandle<EdgeInterpolation> cellPointEdgeInterpolation;
+    viskores::cont::ArrayHandle<EdgeInterpolation> cellPointEdgeInterpolation;
     cellPointEdgeInterpolation.Allocate(total.NumberOfInCellEdgeIndices);
 
     this->InCellInterpolationKeys.Allocate(total.NumberOfInCellInterpPoints);
@@ -609,36 +616,36 @@ public:
 
     // extract only the used points from the input
     {
-      vtkm::cont::ArrayHandle<vtkm::IdComponent> pointMask;
+      viskores::cont::ArrayHandle<viskores::IdComponent> pointMask;
       pointMask.AllocateAndFill(scalars.GetNumberOfValues(), 0);
 
       auto pointsOnlyConnectivity =
-        vtkm::cont::make_ArrayHandlePermutation(pointsOnlyConnectivityIndices, connectivity);
+        viskores::cont::make_ArrayHandlePermutation(pointsOnlyConnectivityIndices, connectivity);
 
-      invoke(
-        vtkm::worklet::RemoveUnusedPoints::GeneratePointMask{}, pointsOnlyConnectivity, pointMask);
+      invoke(viskores::worklet::RemoveUnusedPoints::GeneratePointMask{}, pointsOnlyConnectivity,
+        pointMask);
 
-      vtkm::worklet::ScatterCounting scatter(pointMask, true);
+      viskores::worklet::ScatterCounting scatter(pointMask, true);
       auto pointMapInputToOutput = scatter.GetInputToOutputMap();
       this->PointMapOutputToInput = scatter.GetOutputToInputMap();
       pointMask.ReleaseResources();
 
-      invoke(vtkm::worklet::RemoveUnusedPoints::TransformPointIndices{}, pointsOnlyConnectivity,
+      invoke(viskores::worklet::RemoveUnusedPoints::TransformPointIndices{}, pointsOnlyConnectivity,
         pointMapInputToOutput, pointsOnlyConnectivity);
 
       pointsOnlyConnectivityIndices.ReleaseResources();
 
       // We want to find the entries in `InCellInterpolationInfo` that point to exisiting points.
       // `cellPointEdgeReverseConnectivity` map to entries that point to edges.
-      vtkm::cont::ArrayHandle<vtkm::UInt8> stencil;
+      viskores::cont::ArrayHandle<viskores::UInt8> stencil;
       stencil.AllocateAndFill(this->InCellInterpolationInfo.GetNumberOfValues(), 1);
       auto edgeOnlyStencilEntries =
-        vtkm::cont::make_ArrayHandlePermutation(cellPointEdgeReverseConnectivity, stencil);
-      vtkm::cont::Algorithm::Fill(edgeOnlyStencilEntries, vtkm::UInt8{});
-      vtkm::cont::ArrayHandle<vtkm::Id> idxsToPoints;
-      vtkm::cont::Algorithm::CopyIf(
-        vtkm::cont::ArrayHandleIndex(this->InCellInterpolationInfo.GetNumberOfValues()), stencil,
-        idxsToPoints);
+        viskores::cont::make_ArrayHandlePermutation(cellPointEdgeReverseConnectivity, stencil);
+      viskores::cont::Algorithm::Fill(edgeOnlyStencilEntries, viskores::UInt8{});
+      viskores::cont::ArrayHandle<viskores::Id> idxsToPoints;
+      viskores::cont::Algorithm::CopyIf(
+        viskores::cont::ArrayHandleIndex(this->InCellInterpolationInfo.GetNumberOfValues()),
+        stencil, idxsToPoints);
       stencil.ReleaseResources();
 
       // Remap the point indices in `InCellInterpolationInfo`, to the used-only point indices
@@ -646,8 +653,8 @@ public:
       // This only works if the points needed for interpolating centroids are included in the
       // `connectivity` array. This has been verified to be true for all cases in the clip tables.
       auto inCellInterpolationInfoPointsOnly =
-        vtkm::cont::make_ArrayHandlePermutation(idxsToPoints, this->InCellInterpolationInfo);
-      invoke(vtkm::worklet::RemoveUnusedPoints::TransformPointIndices{},
+        viskores::cont::make_ArrayHandlePermutation(idxsToPoints, this->InCellInterpolationInfo);
+      invoke(viskores::worklet::RemoveUnusedPoints::TransformPointIndices{},
         inCellInterpolationInfoPointsOnly, pointMapInputToOutput,
         inCellInterpolationInfoPointsOnly);
     }
@@ -655,22 +662,23 @@ public:
     // Get unique EdgeInterpolation : unique edge points.
     // LowerBound for edgeInterpolation : get index into new edge points array.
     // LowerBound for cellPointEdgeInterpolation : get index into new edge points array.
-    vtkm::cont::Algorithm::SortByKey(
+    viskores::cont::Algorithm::SortByKey(
       edgeInterpolation, edgePointReverseConnectivity, EdgeInterpolation::LessThanOp());
-    vtkm::cont::Algorithm::Copy(edgeInterpolation, this->EdgePointsInterpolation);
-    vtkm::cont::Algorithm::Unique(this->EdgePointsInterpolation, EdgeInterpolation::EqualToOp());
+    viskores::cont::Algorithm::Copy(edgeInterpolation, this->EdgePointsInterpolation);
+    viskores::cont::Algorithm::Unique(
+      this->EdgePointsInterpolation, EdgeInterpolation::EqualToOp());
 
-    vtkm::cont::ArrayHandle<vtkm::Id> edgeInterpolationIndexToUnique;
-    vtkm::cont::Algorithm::LowerBounds(this->EdgePointsInterpolation, edgeInterpolation,
+    viskores::cont::ArrayHandle<viskores::Id> edgeInterpolationIndexToUnique;
+    viskores::cont::Algorithm::LowerBounds(this->EdgePointsInterpolation, edgeInterpolation,
       edgeInterpolationIndexToUnique, EdgeInterpolation::LessThanOp());
     edgeInterpolation.ReleaseResources();
 
     // This only works if the edges in `cellPointEdgeInterpolation` also exist in
     // `EdgePointsInterpolation`. This has been verified to be true for all cases in the clip
     // tables.
-    vtkm::cont::ArrayHandle<vtkm::Id> cellInterpolationIndexToUnique;
-    vtkm::cont::Algorithm::LowerBounds(this->EdgePointsInterpolation, cellPointEdgeInterpolation,
-      cellInterpolationIndexToUnique, EdgeInterpolation::LessThanOp());
+    viskores::cont::ArrayHandle<viskores::Id> cellInterpolationIndexToUnique;
+    viskores::cont::Algorithm::LowerBounds(this->EdgePointsInterpolation,
+      cellPointEdgeInterpolation, cellInterpolationIndexToUnique, EdgeInterpolation::LessThanOp());
     cellPointEdgeInterpolation.ReleaseResources();
 
     this->EdgePointsOffset = this->PointMapOutputToInput.GetNumberOfValues();
@@ -689,11 +697,11 @@ public:
     ScatterInCellConnectivity scatterInCellPointConnectivity(this->InCellPointsOffset);
     invoke(scatterInCellPointConnectivity, cellPointReverseConnectivity, connectivity);
 
-    vtkm::cont::CellSetExplicit<> output;
-    vtkm::Id numberOfPoints = this->PointMapOutputToInput.GetNumberOfValues() +
+    viskores::cont::CellSetExplicit<> output;
+    viskores::Id numberOfPoints = this->PointMapOutputToInput.GetNumberOfValues() +
       this->EdgePointsInterpolation.GetNumberOfValues() + total.NumberOfInCellPoints;
 
-    vtkm::cont::ConvertNumComponentsToOffsets(numberOfIndices, offsets);
+    viskores::cont::ConvertNumComponentsToOffsets(numberOfIndices, offsets);
 
     output.Fill(numberOfPoints, shapes, connectivity, offsets);
     return output;
@@ -703,10 +711,10 @@ public:
   class ClipWithImplicitFunction
   {
   public:
-    VTKM_CONT
+    VISKORES_CONT
     ClipWithImplicitFunction(ClipDPClip* clipper, const CellSetType& cellSet,
-      const ImplicitFunction& function, vtkm::Float64 offset, bool invert,
-      vtkm::cont::CellSetExplicit<>* result)
+      const ImplicitFunction& function, viskores::Float64 offset, bool invert,
+      viskores::cont::CellSetExplicit<>* result)
       : Clipper(clipper)
       , CellSet(&cellSet)
       , Function(function)
@@ -717,12 +725,12 @@ public:
     }
 
     template <typename ArrayHandleType>
-    VTKM_CONT void operator()(const ArrayHandleType& handle) const
+    VISKORES_CONT void operator()(const ArrayHandleType& handle) const
     {
       // Evaluate the implicit function on the input coordinates using
       // ArrayHandleTransform
-      vtkm::cont::ArrayHandleTransform<ArrayHandleType,
-        vtkm::ImplicitFunctionValueFunctor<ImplicitFunction>>
+      viskores::cont::ArrayHandleTransform<ArrayHandleType,
+        viskores::ImplicitFunctionValueFunctor<ImplicitFunction>>
         clipScalars(handle, this->Function);
 
       // Clip at locations where the implicit function evaluates to `Offset`
@@ -733,18 +741,18 @@ public:
     ClipDPClip* Clipper;
     const CellSetType* CellSet;
     ImplicitFunction Function;
-    vtkm::Float64 Offset;
+    viskores::Float64 Offset;
     bool Invert;
-    vtkm::cont::CellSetExplicit<>* Result;
+    viskores::cont::CellSetExplicit<>* Result;
   };
 
   template <typename CellSetType, typename ImplicitFunction>
-  vtkm::cont::CellSetExplicit<> Run(const CellSetType& cellSet,
-    const ImplicitFunction& clipFunction, vtkm::Float64 offset,
-    const vtkm::cont::CoordinateSystem& coords, vtkm::Id vtkmNotUsed(batchSize),
-    YamlWriter& vtkmNotUsed(log), bool invert)
+  viskores::cont::CellSetExplicit<> Run(const CellSetType& cellSet,
+    const ImplicitFunction& clipFunction, viskores::Float64 offset,
+    const viskores::cont::CoordinateSystem& coords, viskores::Id viskoresNotUsed(batchSize),
+    YamlWriter& viskoresNotUsed(log), bool invert)
   {
-    vtkm::cont::CellSetExplicit<> output;
+    viskores::cont::CellSetExplicit<> output;
 
     ClipWithImplicitFunction<CellSetType, ImplicitFunction> clip(
       this, cellSet, clipFunction, offset, invert, &output);
@@ -754,31 +762,32 @@ public:
   }
 
   template <typename CellSetType, typename ImplicitFunction>
-  vtkm::cont::CellSetExplicit<> Run(const CellSetType& cellSet,
-    const ImplicitFunction& clipFunction, const vtkm::cont::CoordinateSystem& coords, bool invert)
+  viskores::cont::CellSetExplicit<> Run(const CellSetType& cellSet,
+    const ImplicitFunction& clipFunction, const viskores::cont::CoordinateSystem& coords,
+    bool invert)
   {
     return this->Run(cellSet, clipFunction, 0.0, coords, invert);
   }
 
-  struct PerformEdgeInterpolations : public vtkm::worklet::WorkletMapField
+  struct PerformEdgeInterpolations : public viskores::worklet::WorkletMapField
   {
     using ControlSignature = void(
       FieldIn edgeInterpolations, WholeArrayIn originalField, FieldOut outputField);
     using ExecutionSignature = void(_1, _2, _3);
 
     template <typename FieldPortal, typename T>
-    VTKM_EXEC void operator()(
+    VISKORES_EXEC void operator()(
       const EdgeInterpolation& edgeInterp, const FieldPortal& originalField, T& output) const
     {
       T v1 = originalField.Get(edgeInterp.Vertex1);
       T v2 = originalField.Get(edgeInterp.Vertex2);
 
       // Interpolate per-vertex because some vec-like objects do not allow intermediate variables
-      using VTraits = vtkm::VecTraits<T>;
+      using VTraits = viskores::VecTraits<T>;
       using CType = typename VTraits::ComponentType;
-      VTKM_ASSERT(VTraits::GetNumberOfComponents(v1) == VTraits::GetNumberOfComponents(output));
-      VTKM_ASSERT(VTraits::GetNumberOfComponents(v2) == VTraits::GetNumberOfComponents(output));
-      for (vtkm::IdComponent component = 0; component < VTraits::GetNumberOfComponents(output);
+      VISKORES_ASSERT(VTraits::GetNumberOfComponents(v1) == VTraits::GetNumberOfComponents(output));
+      VISKORES_ASSERT(VTraits::GetNumberOfComponents(v2) == VTraits::GetNumberOfComponents(output));
+      for (viskores::IdComponent component = 0; component < VTraits::GetNumberOfComponents(output);
         ++component)
       {
         CType c1 = VTraits::GetComponent(v1, component);
@@ -789,24 +798,25 @@ public:
     }
   };
 
-  struct PerformInCellInterpolations : public vtkm::worklet::WorkletReduceByKey
+  struct PerformInCellInterpolations : public viskores::worklet::WorkletReduceByKey
   {
     using ControlSignature = void(KeysIn keys, ValuesIn toReduce, ReducedValuesOut centroids);
     using ExecutionSignature = void(_2, _3);
 
     template <typename MappedValueVecType, typename MappedValueType>
-    VTKM_EXEC void operator()(const MappedValueVecType& toReduce, MappedValueType& centroid) const
+    VISKORES_EXEC void operator()(
+      const MappedValueVecType& toReduce, MappedValueType& centroid) const
     {
-      const vtkm::IdComponent numValues = toReduce.GetNumberOfComponents();
+      const viskores::IdComponent numValues = toReduce.GetNumberOfComponents();
 
       // Interpolate per-vertex because some vec-like objects do not allow intermediate variables
-      using VTraits = vtkm::VecTraits<MappedValueType>;
+      using VTraits = viskores::VecTraits<MappedValueType>;
       using CType = typename VTraits::ComponentType;
-      for (vtkm::IdComponent component = 0; component < VTraits::GetNumberOfComponents(centroid);
-        ++component)
+      for (viskores::IdComponent component = 0;
+        component < VTraits::GetNumberOfComponents(centroid); ++component)
       {
         CType sum = VTraits::GetComponent(toReduce[0], component);
-        for (vtkm::IdComponent reduceI = 1; reduceI < numValues; ++reduceI)
+        for (viskores::IdComponent reduceI = 1; reduceI < numValues; ++reduceI)
         {
           // static_cast is for when MappedValueType is a small int that gets promoted to int32.
           sum = static_cast<CType>(sum + VTraits::GetComponent(toReduce[reduceI], component));
@@ -824,50 +834,50 @@ public:
       this->InterpolationKeys.BuildArrays(this->InCellInterpolationKeys, KeysSortType::Unstable);
     }
 
-    vtkm::Id numberOfVertexPoints = this->PointMapOutputToInput.GetNumberOfValues();
-    vtkm::Id numberOfEdgePoints = this->EdgePointsInterpolation.GetNumberOfValues();
-    vtkm::Id numberOfInCellPoints = this->InterpolationKeys.GetUniqueKeys().GetNumberOfValues();
+    viskores::Id numberOfVertexPoints = this->PointMapOutputToInput.GetNumberOfValues();
+    viskores::Id numberOfEdgePoints = this->EdgePointsInterpolation.GetNumberOfValues();
+    viskores::Id numberOfInCellPoints = this->InterpolationKeys.GetUniqueKeys().GetNumberOfValues();
 
     output.Allocate(numberOfVertexPoints + numberOfEdgePoints + numberOfInCellPoints);
 
     // Copy over the original values that are still part of the output.
-    vtkm::cont::Algorithm::CopySubRange(
-      vtkm::cont::make_ArrayHandlePermutation(this->PointMapOutputToInput, input), 0,
+    viskores::cont::Algorithm::CopySubRange(
+      viskores::cont::make_ArrayHandlePermutation(this->PointMapOutputToInput, input), 0,
       numberOfVertexPoints, output);
 
     // Interpolate all new points that lie on edges of the input mesh.
-    vtkm::cont::Invoker invoke;
+    viskores::cont::Invoker invoke;
     invoke(PerformEdgeInterpolations{}, this->EdgePointsInterpolation, input,
-      vtkm::cont::make_ArrayHandleView(output, numberOfVertexPoints, numberOfEdgePoints));
+      viskores::cont::make_ArrayHandleView(output, numberOfVertexPoints, numberOfEdgePoints));
 
     // Perform a gather on the output to get all the required values for calculation of centroids
     // using the interpolation info array.
     auto toReduceValues =
-      vtkm::cont::make_ArrayHandlePermutation(this->InCellInterpolationInfo, output);
+      viskores::cont::make_ArrayHandlePermutation(this->InCellInterpolationInfo, output);
     invoke(PerformInCellInterpolations{}, this->InterpolationKeys, toReduceValues,
-      vtkm::cont::make_ArrayHandleView(
+      viskores::cont::make_ArrayHandleView(
         output, numberOfVertexPoints + numberOfEdgePoints, numberOfInCellPoints));
   }
 
-  vtkm::cont::ArrayHandle<vtkm::Id> GetCellMapOutputToInput() const
+  viskores::cont::ArrayHandle<viskores::Id> GetCellMapOutputToInput() const
   {
     return this->CellMapOutputToInput;
   }
 
 private:
-  internal::ClipTables ClipTablesInstance;
-  vtkm::cont::ArrayHandle<EdgeInterpolation> EdgePointsInterpolation;
-  vtkm::cont::ArrayHandle<vtkm::Id> InCellInterpolationKeys;
-  vtkm::cont::ArrayHandle<vtkm::Id> InCellInterpolationInfo;
-  vtkm::cont::ArrayHandle<vtkm::Id> CellMapOutputToInput;
-  vtkm::cont::ArrayHandle<vtkm::Id> PointMapOutputToInput;
-  vtkm::Id EdgePointsOffset;
-  vtkm::Id InCellPointsOffset;
-  vtkm::worklet::Keys<vtkm::Id> InterpolationKeys;
+  internalDP::ClipTables ClipTablesInstance;
+  viskores::cont::ArrayHandle<EdgeInterpolation> EdgePointsInterpolation;
+  viskores::cont::ArrayHandle<viskores::Id> InCellInterpolationKeys;
+  viskores::cont::ArrayHandle<viskores::Id> InCellInterpolationInfo;
+  viskores::cont::ArrayHandle<viskores::Id> CellMapOutputToInput;
+  viskores::cont::ArrayHandle<viskores::Id> PointMapOutputToInput;
+  viskores::Id EdgePointsOffset;
+  viskores::Id InCellPointsOffset;
+  viskores::worklet::Keys<viskores::Id> InterpolationKeys;
   bool InterpolationKeysBuilt = false;
 };
 }
-} // namespace vtkm::worklet
+} // namespace viskores::worklet
 
 #if defined(THRUST_SCAN_WORKAROUND)
 namespace thrust
@@ -877,11 +887,11 @@ namespace detail
 
 // causes a different code path which does not have the bug
 template <>
-struct is_integral<vtkm::worklet::ClipStats> : public true_type
+struct is_integral<viskores::worklet::ClipStats> : public true_type
 {
 };
 }
 } // namespace thrust::detail
 #endif
 
-#endif // vtkm_m_worklet_ClipDPClip_h
+#endif // viskores_worklet_ClipDPClip_h

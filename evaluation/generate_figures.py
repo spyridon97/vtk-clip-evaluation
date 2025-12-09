@@ -491,7 +491,7 @@ if method == 0 or method == 5:
         for percentage in percentages:
             output_dataset_name = f"{dataset_name}_per_{percentage}"
             gpu_time_data[output_dataset_name] = {}
-            for algo in vtkm_algorithms:
+            for algo in viskores_algorithms:
                 algorithm_name = algorithms_names[algo]
                 output_file = f"{data_gpu_time_dir}/{output_dataset_name}_{algorithm_name}.yaml"
                 run_time = get_run_time_info(output_file)

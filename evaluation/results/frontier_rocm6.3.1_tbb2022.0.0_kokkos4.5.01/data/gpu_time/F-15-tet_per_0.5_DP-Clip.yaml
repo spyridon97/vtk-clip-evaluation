@@ -1,5 +1,5 @@
-- vtk-version: 9.4.1-1403-g5bf50f4507
-  vtkm-version: 2.2.0-149-g4be31777c
+- vtk-version: 9.5.2
+  viskores-version: 1.0.0
   hostname: frontier10495
   date: 2025-05-28T10:05:57-0400
   device: Kokkos
@@ -16,7 +16,7 @@
     - algorithm-name: DP-Clip
       batch-size: 6
 [0m[31m2025-05-28 10:10:12.826 ( 254.914s) [main thread     ]         TryExecute.cxx:36     ERR| TryExecute encountered an error: Bad allocation (Failed to allocate 5547740368 bytes on Kokkos device)[0m
-[0m[31m2025-05-28 10:10:12.826 ( 254.914s) [main thread     ]         TryExecute.cxx:36     ERR| Failing functor: vtkm::worklet::internal::detail::DispatcherBaseTryExecuteFunctor[0m
+[0m[31m2025-05-28 10:10:12.826 ( 254.914s) [main thread     ]         TryExecute.cxx:36     ERR| Failing functor: viskores::worklet::internal::detail::DispatcherBaseTryExecuteFunctor[0m
 [0m[31m2025-05-28 10:10:12.826 ( 254.914s) [main thread     ]         TryExecute.cxx:36     ERR| Failing device: Kokkos[0m
 [0m[31m2025-05-28 10:10:12.826 ( 254.914s) [main thread     ]         TryExecute.cxx:36     ERR| The failing device has been disabled.[0m
       error: Failed to execute worklet on any device.

@@ -52,7 +52,7 @@ if method == 0 or method == 5:
     os.makedirs(data_gpu_time_dir, exist_ok=True)
     # Run the evaluation for each algorithm with each hash function, because memory allocation issues can arise
     for dataset in datasets:
-        for algo in vtkm_algorithms:
+        for algo in viskores_algorithms:
             for percentage in percentages:
                 run_command(
                     f"{executable} -i {dataset} -d KOKKOS -t {max_number_of_threads} {algo} -b {gpu_ideal_batch_size} -p {percentage} -n {iterations}",

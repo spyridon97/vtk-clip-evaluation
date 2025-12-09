@@ -34,9 +34,9 @@ cmake -G "${cmake_generator}" -S "${kokkos_src_dir}" -B "${kokkos_build_dir}" \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_SHARED_LIBS=ON \
   -DCMAKE_CXX_STANDARD=17 \
-  -DCMAKE_CXX_FLAGS="--offload-arch=gfx90a" \
-  -DCMAKE_CXX_COMPILER=hipcc \
   -DCMAKE_INSTALL_PREFIX="${kokkos_install_dir}" \
+  -DCMAKE_CXX_COMPILER=hipcc \
+  -DCMAKE_HIP_ARCHITECTURES="gfx90a" \
   -DKokkos_ARCH_VEGA90A=ON \
   -DKokkos_ENABLE_HIP=ON \
   -DKokkos_ENABLE_HIP_RELOCATABLE_DEVICE_CODE=OFF \
@@ -86,14 +86,14 @@ cmake -G "${cmake_generator}" -S "${vtkce_src_dir}" -B "${vtkce_build_dir}" \
   -DCMAKE_CXX_STANDARD=17 \
   -DCMAKE_CXX_COMPILER=amdclang++ \
   -DCMAKE_C_COMPILER=amdclang \
-  -DCMAKE_HIP_ARCHITECTURES="gfx90a" \
   -DCMAKE_PREFIX_PATH="${kokkos_install_dir}" \
-  -DCMAKE_INSTALL_PREFIX="${vtkce_install_dir}" \
+  -DCMAKE_INSTALL_PREFIX="${vtkefe_install_dir}" \
+  -DCMAKE_HIP_ARCHITECTURES="gfx90a" \
   -DKokkos_CXX_COMPILER="$(which hipcc)" \
-  -DTBB_ROOT="${tbb_install_dir}" \
   -DVTK_USE_KOKKOS=ON \
   -DVTK_KOKKOS_BACKEND=HIP \
-  -DVTKm_USE_DOUBLE_PRECISION=ON
+  -DTBB_ROOT="${tbb_install_dir}" \
+  -DViskores_USE_DOUBLE_PRECISION=ON
 
 time cmake --build "${vtkce_build_dir}" -j
 cmake --install "${vtkce_build_dir}"

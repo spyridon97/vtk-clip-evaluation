@@ -68,12 +68,12 @@ algorithms_names = {"--s-clip": "S-Clip", "--p-batch-clip": "P-Batch-Clip", "--d
 algorithms = ["--s-clip", "--p-batch-clip", "--dp-clip", "--dp-batch-clip"]
 parallel_algorithms = algorithms[1:]
 vtk_algorithms = algorithms[:2]
-vtkm_algorithms = algorithms[2:]
+viskores_algorithms = algorithms[2:]
 non_batch_algorithms = [algorithms[0], algorithms[2]]
 batch_algorithms = [algorithms[1], algorithms[3]]
 algorithms_joined = " ".join(algorithms)
 parallel_algorithms_joined = " ".join(parallel_algorithms)
-vtkm_algorithms_joined = " ".join(vtkm_algorithms)
+viskores_algorithms_joined = " ".join(viskores_algorithms)
 batch_algorithms_joined = " ".join(batch_algorithms)
 
 dp_batch_clip_steps = ["seconds-mark-kept-points",

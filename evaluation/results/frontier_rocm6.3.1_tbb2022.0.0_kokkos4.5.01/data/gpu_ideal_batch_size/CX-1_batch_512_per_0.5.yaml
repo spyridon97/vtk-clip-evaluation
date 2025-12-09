@@ -1,5 +1,5 @@
-- vtk-version: 9.4.1-1403-g5bf50f4507
-  vtkm-version: 2.2.0-149-g4be31777c
+- vtk-version: 9.5.2
+  viskores-version: 1.0.0
   hostname: frontier10494
   date: 2025-05-26T18:28:43-0400
   device: Kokkos

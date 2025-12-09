@@ -1,12 +1,12 @@
-#include <vtkm/Version.h>
-#include <vtkm/cont/CellSetPermutation.h>
-#include <vtkm/cont/CellSetSingleType.h>
-#include <vtkm/cont/DataSet.h>
-#include <vtkm/cont/DataSetBuilderUniform.h>
-#include <vtkm/cont/Initialize.h>
-#include <vtkm/cont/Timer.h>
-#include <vtkm/filter/FieldSelection.h>
-#include <vtkm/filter/MapFieldPermutation.h>
+#include <viskores/Version.h>
+#include <viskores/cont/CellSetPermutation.h>
+#include <viskores/cont/CellSetSingleType.h>
+#include <viskores/cont/DataSet.h>
+#include <viskores/cont/DataSetBuilderUniform.h>
+#include <viskores/cont/Initialize.h>
+#include <viskores/cont/Timer.h>
+#include <viskores/filter/FieldSelection.h>
+#include <viskores/filter/MapFieldPermutation.h>
 
 #include <vtkmlib/ArrayConverters.h>
 #include <vtkmlib/CellSetConverters.h>
@@ -47,7 +47,7 @@ auto ReadDataSet(const std::string& filename) -> vtkSmartPointer<vtkUnstructured
 
 template <typename ClipAlgorithm>
 auto RunVTKTrial(vtkUnstructuredGrid* inData, vtkImplicitFunction* function, unsigned int batchSize,
-  YamlWriter& log, bool firstRun = false) -> vtkm::Float64
+  YamlWriter& log, bool firstRun = false) -> viskores::Float64
 {
   vtkNew<ClipAlgorithm> clip;
   clip->SetInputData(inData);
@@ -57,7 +57,7 @@ auto RunVTKTrial(vtkUnstructuredGrid* inData, vtkImplicitFunction* function, uns
   clip->SetBatchSize(batchSize);
   clip->Modified();
 
-  vtkm::cont::Timer timer;
+  viskores::cont::Timer timer;
   timer.Start();
   try
   {
@@ -70,7 +70,7 @@ auto RunVTKTrial(vtkUnstructuredGrid* inData, vtkImplicitFunction* function, uns
   }
   auto outData = clip->GetOutput();
   timer.Stop();
-  vtkm::Float64 elapsedTime = timer.GetElapsedTime();
+  viskores::Float64 elapsedTime = timer.GetElapsedTime();
   if (firstRun)
   {
     log.AddDictionaryEntry("num-output-points", outData->GetNumberOfPoints());
@@ -105,13 +105,13 @@ auto DoVTKRun(const std::string& algorithmName, unsigned int numTrials, vtkUnstr
 }
 
 template <typename ClipWorklet>
-VTKM_CONT bool DoMapField(
-  vtkm::cont::DataSet& result, const vtkm::cont::Field& field, ClipWorklet& worklet)
+VISKORES_CONT bool DoMapField(
+  viskores::cont::DataSet& result, const viskores::cont::Field& field, ClipWorklet& worklet)
 {
   if (field.IsPointField())
   {
-    vtkm::cont::UnknownArrayHandle inputArray = field.GetData();
-    vtkm::cont::UnknownArrayHandle outputArray = inputArray.NewInstanceBasic();
+    viskores::cont::UnknownArrayHandle inputArray = field.GetData();
+    viskores::cont::UnknownArrayHandle outputArray = inputArray.NewInstanceBasic();
 
     auto resolve = [&](const auto& concrete)
     {
@@ -128,8 +128,8 @@ VTKM_CONT bool DoMapField(
   else if (field.IsCellField())
   {
     // Use the precompiled field permutation function.
-    vtkm::cont::ArrayHandle<vtkm::Id> permutation = worklet.GetCellMapOutputToInput();
-    return vtkm::filter::MapFieldPermutation(field, permutation, result);
+    viskores::cont::ArrayHandle<viskores::Id> permutation = worklet.GetCellMapOutputToInput();
+    return viskores::filter::MapFieldPermutation(field, permutation, result);
   }
   else if (field.IsWholeDataSetField())
   {
@@ -143,12 +143,12 @@ VTKM_CONT bool DoMapField(
 }
 
 template <typename FieldMapper>
-VTKM_CONT void MapFieldsOntoOutput(const vtkm::cont::DataSet& input,
-  const vtkm::filter::FieldSelection& fieldSelection, vtkm::cont::DataSet& output,
+VISKORES_CONT void MapFieldsOntoOutput(const viskores::cont::DataSet& input,
+  const viskores::filter::FieldSelection& fieldSelection, viskores::cont::DataSet& output,
   FieldMapper&& fieldMapper)
 {
   // Basic field mapping
-  for (vtkm::IdComponent cc = 0; cc < input.GetNumberOfFields(); ++cc)
+  for (viskores::IdComponent cc = 0; cc < input.GetNumberOfFields(); ++cc)
   {
     auto field = input.GetField(cc);
     if (fieldSelection.IsFieldSelected(field))
@@ -167,7 +167,7 @@ VTKM_CONT void MapFieldsOntoOutput(const vtkm::cont::DataSet& input,
     }
   }
 
-  for (vtkm::IdComponent csIndex = 0; csIndex < input.GetNumberOfCoordinateSystems(); ++csIndex)
+  for (viskores::IdComponent csIndex = 0; csIndex < input.GetNumberOfCoordinateSystems(); ++csIndex)
   {
     auto coords = input.GetCoordinateSystem(csIndex);
     if (!output.HasCoordinateSystem(coords.GetName()))
@@ -185,28 +185,28 @@ VTKM_CONT void MapFieldsOntoOutput(const vtkm::cont::DataSet& input,
 }
 
 template <typename ClipWorklet>
-auto RunVTKmTrial(const vtkm::cont::DataSet& inData, vtkm::ImplicitFunctionGeneral function,
-  unsigned int batchSize, YamlWriter& log, bool firstRun = false) -> vtkm::Float64
+auto RunViskoresTrial(const viskores::cont::DataSet& inData, viskores::ImplicitFunctionGeneral function,
+  unsigned int batchSize, YamlWriter& log, bool firstRun = false) -> viskores::Float64
 {
-  const vtkm::cont::UnknownCellSet& unknownCellSet = inData.GetCellSet();
-  const auto inCellSet = unknownCellSet.ResetCellSetList<VTKM_DEFAULT_CELL_SET_LIST_UNSTRUCTURED>();
-  const vtkm::cont::CoordinateSystem& inCoords = inData.GetCoordinateSystem(0);
+  const viskores::cont::UnknownCellSet& unknownCellSet = inData.GetCellSet();
+  const auto inCellSet = unknownCellSet.ResetCellSetList<VISKORES_DEFAULT_CELL_SET_LIST_UNSTRUCTURED>();
+  const viskores::cont::CoordinateSystem& inCoords = inData.GetCoordinateSystem(0);
 
-  vtkm::cont::CellSetExplicit<> outCellSet;
+  viskores::cont::CellSetExplicit<> outCellSet;
 
   std::stringstream dummyStream;
   YamlWriter dummyLog(dummyStream);
 
   ClipWorklet clip;
 
-  vtkm::cont::Timer timer;
+  viskores::cont::Timer timer;
   timer.Start();
   try
   {
     outCellSet = clip.Run(
       inCellSet, function, 0, inCoords, batchSize, firstRun ? dummyLog : log, false /*inverse*/);
   }
-  catch (vtkm::cont::Error& e)
+  catch (viskores::cont::Error& e)
   {
     log.AddDictionaryEntry("error", e.GetMessage());
     return 0.0;
@@ -217,16 +217,16 @@ auto RunVTKmTrial(const vtkm::cont::DataSet& inData, vtkm::ImplicitFunctionGener
     return 0.0;
   }
   timer.Stop();
-  vtkm::Float64 elapsedTime = timer.GetElapsedTime();
+  viskores::Float64 elapsedTime = timer.GetElapsedTime();
   if (!firstRun)
   {
     log.AddDictionaryEntry("seconds-clip", elapsedTime);
   }
   auto mapper = [&](auto& result, const auto& f) { DoMapField(result, f, clip); };
-  vtkm::cont::DataSet outDataSet;
+  viskores::cont::DataSet outDataSet;
   outDataSet.SetCellSet(outCellSet);
   timer.Start();
-  MapFieldsOntoOutput(inData, vtkm::filter::FieldSelection::Mode::All, outDataSet, mapper);
+  MapFieldsOntoOutput(inData, viskores::filter::FieldSelection::Mode::All, outDataSet, mapper);
   timer.Stop();
   elapsedTime += timer.GetElapsedTime();
   if (firstRun)
@@ -243,8 +243,8 @@ auto RunVTKmTrial(const vtkm::cont::DataSet& inData, vtkm::ImplicitFunctionGener
 }
 
 template <typename ClipWorklet>
-auto DoVTKmRun(const std::string& algorithmName, unsigned int numTrials,
-  const vtkm::cont::DataSet& inData, vtkm::ImplicitFunctionGeneral& function,
+auto DoViskoresRun(const std::string& algorithmName, unsigned int numTrials,
+  const viskores::cont::DataSet& inData, viskores::ImplicitFunctionGeneral& function,
   unsigned int& batchSize, YamlWriter& log) -> void
 {
   log.StartListItem();
@@ -252,7 +252,7 @@ auto DoVTKmRun(const std::string& algorithmName, unsigned int numTrials,
   log.AddDictionaryEntry("batch-size", batchSize);
 
   log.AddDictionaryEntry(
-    "first-run-time", RunVTKmTrial<ClipWorklet>(inData, function, batchSize, log, true));
+    "first-run-time", RunViskoresTrial<ClipWorklet>(inData, function, batchSize, log, true));
 
   if (numTrials > 0)
   {
@@ -262,7 +262,7 @@ auto DoVTKmRun(const std::string& algorithmName, unsigned int numTrials,
       log.StartListItem();
       log.AddDictionaryEntry("trial-index", trial);
       log.AddDictionaryEntry(
-        "seconds-total", RunVTKmTrial<ClipWorklet>(inData, function, batchSize, log));
+        "seconds-total", RunViskoresTrial<ClipWorklet>(inData, function, batchSize, log));
     }
     log.EndBlock();
   }
@@ -276,13 +276,13 @@ auto main(int argc, char** argv) -> int
   vtksys::SystemInformation sysinfo;
 
   std::string deviceName =
-    args.DeviceName != "TBB" ? vtkm::cont::make_DeviceAdapterId(args.DeviceName).GetName() : "TBB";
+    args.DeviceName != "TBB" ? viskores::cont::make_DeviceAdapterId(args.DeviceName).GetName() : "TBB";
 
   YamlWriter log;
   log.StartListItem();
 
   log.AddDictionaryEntry("vtk-version", VTK_VERSION_FULL);
-  log.AddDictionaryEntry("vtkm-version", VTKM_VERSION_FULL);
+  log.AddDictionaryEntry("viskores-version", VISKORES_VERSION_FULL);
   log.AddDictionaryEntry("hostname", sysinfo.GetHostname());
   std::time_t currentTime = std::time(nullptr);
   char timeString[256];
@@ -290,9 +290,9 @@ auto main(int argc, char** argv) -> int
   log.AddDictionaryEntry("date", timeString);
 
   vtkSMPTools::Initialize(static_cast<int>(args.NumberOfThreads));
-  // Construct the command line string for vtkm::cont::Initialize
-  std::vector<std::string> strings = { argv[0], "--vtkm-device", deviceName };
-  strings.emplace_back("--vtkm-num-threads");
+  // Construct the command line string for viskores::cont::Initialize
+  std::vector<std::string> strings = { argv[0], "--viskores-device", deviceName };
+  strings.emplace_back("--viskores-num-threads");
   strings.push_back(std::to_string(args.NumberOfThreads));
   std::vector<char*> argvVector;
   for (const auto& str : strings)
@@ -300,10 +300,10 @@ auto main(int argc, char** argv) -> int
     argvVector.push_back(const_cast<char*>(str.c_str()));
   }
   argvVector.push_back(nullptr);
-  int vtkm_argc = static_cast<int>(argvVector.size() - 1);
-  char** vtkm_argv = argvVector.data();
-  auto result = vtkm::cont::Initialize(vtkm_argc, vtkm_argv,
-    vtkm::cont::InitializeOptions::RequireDevice | vtkm::cont::InitializeOptions::ErrorOnBadOption);
+  int Viskores_argc = static_cast<int>(argvVector.size() - 1);
+  char** Viskores_argv = argvVector.data();
+  auto result = viskores::cont::Initialize(Viskores_argc, Viskores_argv,
+    viskores::cont::InitializeOptions::RequireDevice | viskores::cont::InitializeOptions::ErrorOnBadOption);
   log.AddDictionaryEntry("device", result.Device.GetName());
   log.AddDictionaryEntry("num-threads", args.NumberOfThreads);
 
@@ -333,12 +333,12 @@ auto main(int argc, char** argv) -> int
       std::to_string(normal[2]));
 
   // Convert the VTK data to VTK-m data if needed
-  // vtkm::cont::DataSet vtkmInputData;
+  // viskores::cont::DataSet ViskoresInputData;
   // if (args.PHashSort || args.PHashFight || args.PHashCount)
   // {
-  //   vtkmInputData = tovtkm::Convert(vtkInputData, tovtkm::FieldsFlag::PointsAndCells);
+  //   ViskoresInputData = tovtkm::Convert(vtkInputData, tovtkm::FieldsFlag::PointsAndCells);
   // }
-  vtkm::cont::DataSet vtkmInputData =
+  viskores::cont::DataSet ViskoresInputData =
     tovtkm::Convert(vtkInputData, tovtkm::FieldsFlag::PointsAndCells);
   // deallocate the VTK data if it is not needed
   // if (!(args.HashDistribution || args.SClassifier || args.SHash || args.PClassifier ||
@@ -348,7 +348,7 @@ auto main(int argc, char** argv) -> int
   // }
   tovtkm::ImplicitFunctionConverter clipFunctionConverter;
   clipFunctionConverter.Set(vtkClipFunction);
-  auto vtkmClipFunction = clipFunctionConverter.Get();
+  auto ViskoresClipFunction = clipFunctionConverter.Get();
 
   const auto datasetMemoryUsed = sysinfo.GetProcMemoryUsed();
   log.AddDictionaryEntry("dataset-memory-used", datasetMemoryUsed);
@@ -367,13 +367,13 @@ auto main(int argc, char** argv) -> int
   }
   if (args.DPClip)
   {
-    DoVTKmRun<vtkm::worklet::ClipDPClip>(
-      "DP-Clip", args.NumberOfTrials, vtkmInputData, vtkmClipFunction, args.BatchSize, log);
+    DoViskoresRun<viskores::worklet::ClipDPClip>(
+      "DP-Clip", args.NumberOfTrials, ViskoresInputData, ViskoresClipFunction, args.BatchSize, log);
   }
   if (args.DPBatchClip)
   {
-    DoVTKmRun<vtkm::worklet::ClipDPBatchClip>(
-      "DP-Batch-Clip", args.NumberOfTrials, vtkmInputData, vtkmClipFunction, args.BatchSize, log);
+    DoViskoresRun<viskores::worklet::ClipDPBatchClip>(
+      "DP-Batch-Clip", args.NumberOfTrials, ViskoresInputData, ViskoresClipFunction, args.BatchSize, log);
   }
   log.EndBlock();
 }
