@@ -10,6 +10,7 @@ from configuration import *
 # Figure size
 fig_width = 8
 fig_height = 6.5
+fig_height_small = 4.75
 
 legend_fontsize = 11
 axis_label_fontsize = 14
@@ -62,25 +63,13 @@ algorithm_colors[f'{algorithms_names["--dp-batch-clip"]}_batch_{gpu_ideal_batch_
     algorithms_names["--dp-batch-clip"]]
 
 
-def print_improvement_ratio(df):
+def print_total_improvement_ratio(df):
     print()
-    # find me ratios of all algorithms over the minimum value for each dataset
-    for dataset in df.columns:
-        min = df[dataset].min()
-        min = float(1) if math.isnan(min) else min
-        for algo in df.index:
-            value = df.loc[algo][dataset]
-            value = float(1) if value is None else value
-            ratio = value / min
-            print(f"Dataset: {dataset}, Algorithm: {algo}, Value/Min Ratio: {ratio:.2f}")
-        print()
     algorithm_ratios = {}
     for dataset in df.columns:
         min = df[dataset].min()
-        min = float(1) if math.isnan(min) else min
         for algorithm in df.index:
             value = df.loc[algorithm][dataset]
-            value = float(1) if value is None else value
             ratio = value / min
             if algorithm not in algorithm_ratios:
                 algorithm_ratios[algorithm] = []
@@ -88,6 +77,28 @@ def print_improvement_ratio(df):
     for algorithm, ratios in algorithm_ratios.items():
         print(f"Algorithm: {algorithm}, Min - Max Ratios: {np.min(ratios):.2f}x - {np.max(ratios):.2f}x")
     print()
+
+
+def add_improvement_ratio_columns(df, metric_type='ratio'):
+    result_df = df.copy()
+
+    for dataset in df.columns:
+        result_df[dataset] = result_df[dataset].round(2)
+
+    for dataset in df.columns:
+        if metric_type == 'ratio':
+            min_val = df[dataset].min(skipna=True)
+            ratio_col = df[dataset] / min_val
+            col_name = f"{dataset}_ratio"
+        else:  # speedup
+            max_val = df[dataset].max(skipna=True)
+            ratio_col = max_val / df[dataset]
+            col_name = f"{dataset}_speedup"
+
+        col_idx = result_df.columns.get_loc(dataset)
+        result_df.insert(col_idx + 1, col_name, ratio_col.round(2))
+
+    return result_df
 
 
 class NormalizeType(Enum):
@@ -99,7 +110,7 @@ class NormalizeType(Enum):
 
 def create_box_plot_chart(df, x_label, y_label, figure_filename, normalize_type=NormalizeType.NONE):
     # Create the figure
-    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height_small))
 
     # Get the batch sizes (column names)
     batch_sizes = df.columns
@@ -160,7 +171,6 @@ def create_bar_chart(df, add_min_offset, x_label, y_label, legend_title, legend_
     for j, algorithm in enumerate(df.index):
         # Extract values for the algorithm
         values = df.loc[algorithm].values
-        print(f"Algorithm: {algorithm}, Values: {values}")
 
         # Plot each algorithm's memory footprint as a horizontal bar for each dataset
         ax.barh(y=dataset_positions + ((num_algorithms - 1) - j - (num_algorithms - 1) / 2) * width, width=values,
@@ -400,18 +410,18 @@ if method == 0 or method == 3:
 
     filename_prefixes = [f"{fig_cpu_time_dir}/cpu_time_1_threads",
                          f"{fig_cpu_time_dir}/cpu_time_{max_number_of_threads}_threads"]
-    cpu_time_data_all = [cpu_time_data_1_threads,
-                         cpu_time_data_max_threads]
-    for filename_prefix, cpu_time_data in zip(filename_prefixes, cpu_time_data_all):
+    df_cpu_time_data = [cpu_time_data_1_threads, cpu_time_data_max_threads]
+    for filename_prefix, cpu_time_data in zip(filename_prefixes, df_cpu_time_data):
         print(f"Processing file: {filename_prefix}")
         # Convert the data to a pandas DataFrame
         df_cpu_time = pd.DataFrame(cpu_time_data)
         df_cpu_time.index.name = 'Algorithm'
-        df_cpu_time.to_csv(f"{filename_prefix}.csv", index=True, header=True)
-        print(df_cpu_time)
 
         # Print improvement ratios
-        print_improvement_ratio(df_cpu_time)
+        df_cpu_time_with_ratio = add_improvement_ratio_columns(df_cpu_time)
+        df_cpu_time_with_ratio.to_csv(f"{filename_prefix}.csv", index=True, header=True, float_format='%.2f')
+        print(df_cpu_time_with_ratio)
+        print_total_improvement_ratio(df_cpu_time)
 
         # Create bar chart
         create_bar_chart(df_cpu_time, True, 'CPU time (seconds)', 'Datasets', 'Algorithms', 'lower right',
@@ -432,15 +442,12 @@ if method == 0 or method == 4:
 
     filename_prefixes = [f"{fig_speed_up_dir}/{dataset_name}_speed_up" for dataset_name in speed_up_datasets_names]
     for dataset_name, filename_prefix in zip(speed_up_datasets_names, filename_prefixes):
-        print(f"Processing file: {filename_prefix}")
-
         df_speed_up = pd.DataFrame(cpu_time[dataset_name]).transpose()
         df_speed_up.index.name = 'Threads'
         df_speed_up.to_csv(f"{filename_prefix}.csv", index=True, header=True)
         print(df_speed_up)
-
         # Create the figure
-        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height_small))
 
         # Loop through each dataset and plot its values across threads
         for algorithm_name in df_speed_up.columns:
@@ -503,11 +510,12 @@ if method == 0 or method == 5:
     # Convert the data to a pandas DataFrame
     df_gpu_time = pd.DataFrame(gpu_time_data)
     df_gpu_time.index.name = 'Algorithm'
-    df_gpu_time.to_csv(f"{filename_prefix}.csv", index=True, header=True)
-    print(df_gpu_time)
 
     # Print improvement ratios
-    print_improvement_ratio(df_gpu_time)
+    df_gpu_time_with_ratio = add_improvement_ratio_columns(df_gpu_time)
+    df_gpu_time_with_ratio.to_csv(f"{filename_prefix}.csv", index=True, header=True, float_format='%.2f')
+    print(df_gpu_time_with_ratio)
+    print_total_improvement_ratio(df_gpu_time)
 
     # Create bar chart
     create_bar_chart(df_gpu_time, False, 'GPU time (seconds)', 'Datasets', 'Algorithms', 'lower right',
@@ -555,11 +563,13 @@ if method == 0 or method == 6:
     # Convert the data to a pandas DataFrame
     df_memory_footprint = pd.DataFrame(memory_footprint_data)
     df_memory_footprint.index.name = 'Algorithm'
-    df_memory_footprint.to_csv(f"{fig_memory_footprint_dir}/memory_footprint.csv", index=True, header=True)
-    print(df_memory_footprint)
 
     # Print improvement ratios
-    print_improvement_ratio(df_memory_footprint)
+    df_memory_footprint_with_ratio = add_improvement_ratio_columns(df_memory_footprint)
+    df_memory_footprint_with_ratio.to_csv(f"{fig_memory_footprint_dir}/memory_footprint.csv", index=True,
+                                          header=True, float_format='%.2f')
+    print(df_memory_footprint_with_ratio)
+    print_total_improvement_ratio(df_memory_footprint)
 
     # Create bar chart
     create_bar_chart(df_memory_footprint, True, 'Memory footprint (gigabytes)', 'Datasets', 'Algorithms', 'lower right',
