@@ -1,82 +1,77 @@
-# VTK Clip Evaluation
+# vtk-clip-evaluation
 
-Repository to evaluate the performance of clip filters in VTK
+## Introduction
 
-## Build Instructions
+Repository for the evaluation of the clip calculation algorithms in VTK/Viskores.
 
-There are 3 directories in this repository: clip-seq, clip-m-par, and clip-par
+The algorithms that are evaluated are the following:
 
-### clip-seq
+1. VTK's S-Clip found in src/vtkTableBasedClipDataSetSClip
+2. VTK's P-Batch-Clip found in src/vtkTableBasedClipDataSetPBatchClip
+3. Viskores' DP-Clip found in src/ClipDPClip
+4. Viskores' DP-Batch-Clip found in src/ClipDPBatchClip
 
-```bash
-cd clip-seq
-mkdir build
-cd build
-cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DVTK_SMP_IMPLEMENTATION_TYPE=TBB ..
-cmake --build . --target clip-seq -j
-``` 
+## Compilation
 
-### clip-m-par
+To compile the executable on the frontier supercomputer, you can use the script `compile_frontier.sh`.
+If you are compiling locally, you can get inspiration from the `compile_frontier.sh` script, and remove or change
+what you do or do not need depending on your system.
 
-```bash
-cd clip-m-par
-mkdir build
-cd build
-cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DVTK_SMP_IMPLEMENTATION_TYPE=TBB -DVTK_MODULE_ENABLE_VTK_AcceleratorsVTKmFilters=YES ..
-cmake --build . --target clip-m-par -j
+## Executable
+
+These algorithms can be used through the compiled executable named `vtk-clip-evaluation`, with the
+following options:
+
+```
+./vtk-clip-evaluation -h
+Clip Evaluation
+Usage: ./vtk-clip-evaluation [OPTIONS]
+
+Options:
+  -h,--help                   Print this help message and exit
+  -i,--input TEXT REQUIRED    Input file name
+  -d,--device TEXT            Device name. Available: "Any" "Serial" "TBB" . (Default: TBB).
+  -t,--threads UINT:UINT in [1 - 16]
+                              Number of threads (Default: 1)
+  -p,--percentage FLOAT:FLOAT in [0 - 1]
+                              Percentage
+  -b,--batch-size UINT        Batch size (Default: 1000)
+  -n,--trials UINT            Number of trials (Default: 1)
+  --s-clip                    Run the S-Clip algorithm
+  --p-batch-clip              Run the P-Batch-Clip algorithm
+  --dp-clip                   Run the DP-Clip algorithm
+  --dp-batch-clip             Run the DP-Batch-Clip algorith
 ```
 
-### clip-par
+## Python Evaluation scripts
 
-```bash
-cd clip-par
-mkdir build
-cd build
-cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DVTK_SMP_IMPLEMENTATION_TYPE=TBB ..
-cd VTK && \
-git apply ../../deactivate-conversion-fromvtk.patch && \
-cd .. && \
-cmake --build . --target clip-par -j
-```
+The ```vtk-clip-evaluation``` executable can be used to evaluate the algorithms.
+In the `evaluation` directory, you can find the following scripts:
 
-## Datasets and Docker Image
+1. `configuration.py` is used to define information regarding where data, executable(s) and
+   results should be located. Be sure to check it out.
+2. `run_evaluation.py` is used to run the ```vtk-clip-evaluation``` executable. It will run the
+   executable with the specified options and store the different kinds of results. For different segments of the
+   evaluation, you can use the ``--method`` option to part of the evaluation you want to run.
+3. `generate_figures.py` is used to generate the figures based on the results obtained from the evaluation. For
+   different segments of the evaluation, you can use the ``--method`` option to generate figures for a specific part of
+   the evaluation.
 
-https://drive.google.com/drive/folders/1RfmTb2kLGVUuX2pHDQN9lg2eYAszVdBs
+## Data
 
-## Execution Instructions
+The datasets used for the evaluations of the algorithms can be downloaded from the following
+[Google Drive folder](https://drive.google.com/drive/folders/1RfmTb2kLGVUuX2pHDQN9lg2eYAszVdBs).
 
-### clip-seq
+Be sure to update the `configuration.py` file with the correct path to the data.
 
-```bash
-/usr/bin/time -vv ./clip-seq/build/clip-seq inputFile percentage numberOfIterations
-```
+## Results
 
-or
+The evaluation data is stored in different folders in the `evaluation/results` directory. The results that are generated
+are:
 
-```bash
-docker run -v $(pwd):/data/ vtk-clip-evaluation /usr/bin/time -vv clip-seq inputFile percentage numberOfIterations numberOfThreads
-```
-
-### clip-m-par
-
-```bash
-/usr/bin/time -vv ./clip-m-par/build/clip-m-par inputFile percentage numberOfIterations numberOfThreads
-```
-
-or
-
-```bash
-docker run -v $(pwd):/data/ vtk-clip-evaluation /usr/bin/time -vv clip-m-par inputFile percentage numberOfIterations numberOfThreads
-```
-
-### clip-par
-
-```bash
-/usr/bin/time -vv ./clip-par/build/clip-par inputFile percentage numberOfIterations numberOfThreads
-```
-
-or
-
-```bash
-docker run -v $(pwd):/data/ vtk-clip-evaluation /usr/bin/time -vv clip-par inputFile percentage numberOfIterations numberOfThreads
-```
+1. cpu-ideal-batch-size: The ideal batch size for the CPU as a whole and per step of the algorithm.
+2. gpu-ideal-batch-size: The ideal batch size for the GPU as a whole and per step of the algorithm.
+3. cpu-time: The CPU time of all algorithms with 1 thread and of all parallel algorithms using max number of threads.
+4. speed-up: The speed-up of the parallel algorithms using max number of threads.
+5. gpu-time: The GPU time of the Viskores algorithms.
+6. memory-footprint: The memory footprint of the algorithms.

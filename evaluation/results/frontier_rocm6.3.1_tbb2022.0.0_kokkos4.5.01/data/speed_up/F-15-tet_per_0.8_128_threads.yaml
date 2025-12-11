@@ -1,0 +1,243 @@
+- vtk-version: 9.5.2
+  viskores-version: 1.0.0
+  hostname: frontier10495
+  date: 2025-05-28T14:20:56-0400
+  device: TBB
+  num-threads: 128
+  input-file: /ccs/home/spyridon97/Data/F-15-tet.vtu
+  topology-connections: regular
+  num-input-points: 116414075
+  num-input-cells: 693467546
+  percentage: 0.8
+  clip-origin: -7040.000000, -6000.000000, 0.000000
+  clip-normal: 1.000000, 0.000000, 0.000000
+  dataset-memory-used: 33757220
+  experiments:
+    - algorithm-name: P-Batch-Clip
+      batch-size: 1024
+      num-output-points: 116414031
+      num-output-cells: 693460820
+      first-run-time: 2.34466
+      trials:
+        - trial-index: 0
+          seconds-total: 2.31756
+        - trial-index: 1
+          seconds-total: 2.31373
+        - trial-index: 2
+          seconds-total: 2.3274
+        - trial-index: 3
+          seconds-total: 2.30443
+        - trial-index: 4
+          seconds-total: 2.31225
+        - trial-index: 5
+          seconds-total: 2.28957
+        - trial-index: 6
+          seconds-total: 2.29492
+        - trial-index: 7
+          seconds-total: 2.31838
+        - trial-index: 8
+          seconds-total: 2.31105
+        - trial-index: 9
+          seconds-total: 2.32814
+    - algorithm-name: DP-Clip
+      batch-size: 1024
+      num-output-points: 116414031
+      num-output-cells: 693460820
+      first-run-time: 9.50276
+      trials:
+        - trial-index: 0
+          seconds-clip: 9.27773
+          seconds-mapping: 0.361826
+          seconds-total: 9.63956
+        - trial-index: 1
+          seconds-clip: 9.46398
+          seconds-mapping: 0.357513
+          seconds-total: 9.82149
+        - trial-index: 2
+          seconds-clip: 9.62001
+          seconds-mapping: 0.356601
+          seconds-total: 9.97661
+        - trial-index: 3
+          seconds-clip: 9.24457
+          seconds-mapping: 0.365011
+          seconds-total: 9.60958
+        - trial-index: 4
+          seconds-clip: 9.52932
+          seconds-mapping: 0.368298
+          seconds-total: 9.89762
+        - trial-index: 5
+          seconds-clip: 9.18624
+          seconds-mapping: 0.358945
+          seconds-total: 9.54519
+        - trial-index: 6
+          seconds-clip: 9.2401
+          seconds-mapping: 0.359151
+          seconds-total: 9.59925
+        - trial-index: 7
+          seconds-clip: 9.26885
+          seconds-mapping: 0.357838
+          seconds-total: 9.62669
+        - trial-index: 8
+          seconds-clip: 9.15107
+          seconds-mapping: 0.357709
+          seconds-total: 9.50878
+        - trial-index: 9
+          seconds-clip: 9.20097
+          seconds-mapping: 0.362389
+          seconds-total: 9.56336
+    - algorithm-name: DP-Batch-Clip
+      batch-size: 1024
+      num-output-points: 116414031
+      num-output-cells: 693460820
+      first-run-time: 2.0741
+      trials:
+        - trial-index: 0
+          seconds-mark-kept-points: 0.0717111
+          seconds-kept-points-mask-select: 0.000205449
+          seconds-point-data-scan-exclusive: 0.000240848
+          seconds-compute-point-maps: 0.0347182
+          seconds-compute-cell-stats: 0.566163
+          seconds-kept-or-clipped-cells-mask-select: 0.000342415
+          seconds-cell-data-scan-exclusive: 0.00242509
+          seconds-clipped-cells-mask-select: 0.000193175
+          seconds-extract-edges: 0.00059266
+          seconds-duplicate-to-unique-edge-map: 0.00027297
+          seconds-generate-cell-set: 0.977337
+          seconds-clip: 1.70617
+          seconds-mapping: 0.345739
+          seconds-total: 2.05191
+        - trial-index: 1
+          seconds-mark-kept-points: 0.0716475
+          seconds-kept-points-mask-select: 0.000222742
+          seconds-point-data-scan-exclusive: 0.000242921
+          seconds-compute-point-maps: 0.0343807
+          seconds-compute-cell-stats: 0.565433
+          seconds-kept-or-clipped-cells-mask-select: 0.000323609
+          seconds-cell-data-scan-exclusive: 0.00226923
+          seconds-clipped-cells-mask-select: 0.000184177
+          seconds-extract-edges: 0.000585998
+          seconds-duplicate-to-unique-edge-map: 0.000254855
+          seconds-generate-cell-set: 0.979152
+          seconds-clip: 1.70358
+          seconds-mapping: 0.34562
+          seconds-total: 2.0492
+        - trial-index: 2
+          seconds-mark-kept-points: 0.071522
+          seconds-kept-points-mask-select: 0.000198406
+          seconds-point-data-scan-exclusive: 0.000242431
+          seconds-compute-point-maps: 0.0339055
+          seconds-compute-cell-stats: 0.565811
+          seconds-kept-or-clipped-cells-mask-select: 0.000402692
+          seconds-cell-data-scan-exclusive: 0.00230268
+          seconds-clipped-cells-mask-select: 0.000185771
+          seconds-extract-edges: 0.000596248
+          seconds-duplicate-to-unique-edge-map: 0.000266347
+          seconds-generate-cell-set: 0.978695
+          seconds-clip: 1.70215
+          seconds-mapping: 0.350386
+          seconds-total: 2.05254
+        - trial-index: 3
+          seconds-mark-kept-points: 0.0716387
+          seconds-kept-points-mask-select: 0.000186712
+          seconds-point-data-scan-exclusive: 0.000242491
+          seconds-compute-point-maps: 0.0348732
+          seconds-compute-cell-stats: 0.568429
+          seconds-kept-or-clipped-cells-mask-select: 0.00036587
+          seconds-cell-data-scan-exclusive: 0.00231482
+          seconds-clipped-cells-mask-select: 0.000184348
+          seconds-extract-edges: 0.000584725
+          seconds-duplicate-to-unique-edge-map: 0.000270235
+          seconds-generate-cell-set: 0.9836
+          seconds-clip: 1.71172
+          seconds-mapping: 0.352932
+          seconds-total: 2.06465
+        - trial-index: 4
+          seconds-mark-kept-points: 0.0715653
+          seconds-kept-points-mask-select: 0.000197093
+          seconds-point-data-scan-exclusive: 0.000261077
+          seconds-compute-point-maps: 0.0342664
+          seconds-compute-cell-stats: 0.565567
+          seconds-kept-or-clipped-cells-mask-select: 0.000360601
+          seconds-cell-data-scan-exclusive: 0.00237534
+          seconds-clipped-cells-mask-select: 0.000204406
+          seconds-extract-edges: 0.000582681
+          seconds-duplicate-to-unique-edge-map: 0.000257139
+          seconds-generate-cell-set: 0.988704
+          seconds-clip: 1.71519
+          seconds-mapping: 0.353777
+          seconds-total: 2.06897
+        - trial-index: 5
+          seconds-mark-kept-points: 0.0718132
+          seconds-kept-points-mask-select: 0.00019079
+          seconds-point-data-scan-exclusive: 0.000257681
+          seconds-compute-point-maps: 0.0349453
+          seconds-compute-cell-stats: 0.569614
+          seconds-kept-or-clipped-cells-mask-select: 0.00035584
+          seconds-cell-data-scan-exclusive: 0.00221816
+          seconds-clipped-cells-mask-select: 0.000192574
+          seconds-extract-edges: 0.000576029
+          seconds-duplicate-to-unique-edge-map: 0.000261929
+          seconds-generate-cell-set: 0.979598
+          seconds-clip: 1.71123
+          seconds-mapping: 0.353115
+          seconds-total: 2.06434
+        - trial-index: 6
+          seconds-mark-kept-points: 0.0711101
+          seconds-kept-points-mask-select: 0.000182615
+          seconds-point-data-scan-exclusive: 0.000265335
+          seconds-compute-point-maps: 0.0335847
+          seconds-compute-cell-stats: 0.565515
+          seconds-kept-or-clipped-cells-mask-select: 0.000343307
+          seconds-cell-data-scan-exclusive: 0.00228406
+          seconds-clipped-cells-mask-select: 0.000200249
+          seconds-extract-edges: 0.000593833
+          seconds-duplicate-to-unique-edge-map: 0.000274793
+          seconds-generate-cell-set: 0.975327
+          seconds-clip: 1.69893
+          seconds-mapping: 0.353173
+          seconds-total: 2.0521
+        - trial-index: 7
+          seconds-mark-kept-points: 0.071747
+          seconds-kept-points-mask-select: 0.000208545
+          seconds-point-data-scan-exclusive: 0.000239706
+          seconds-compute-point-maps: 0.0360761
+          seconds-compute-cell-stats: 0.567351
+          seconds-kept-or-clipped-cells-mask-select: 0.000462258
+          seconds-cell-data-scan-exclusive: 0.00229432
+          seconds-clipped-cells-mask-select: 0.000185901
+          seconds-extract-edges: 0.000574926
+          seconds-duplicate-to-unique-edge-map: 0.000261659
+          seconds-generate-cell-set: 0.977201
+          seconds-clip: 1.70618
+          seconds-mapping: 0.35215
+          seconds-total: 2.05833
+        - trial-index: 8
+          seconds-mark-kept-points: 0.0716786
+          seconds-kept-points-mask-select: 0.000210669
+          seconds-point-data-scan-exclusive: 0.000243703
+          seconds-compute-point-maps: 0.0340975
+          seconds-compute-cell-stats: 0.565207
+          seconds-kept-or-clipped-cells-mask-select: 0.000414996
+          seconds-cell-data-scan-exclusive: 0.00241302
+          seconds-clipped-cells-mask-select: 0.000187023
+          seconds-extract-edges: 0.000580297
+          seconds-duplicate-to-unique-edge-map: 0.000302617
+          seconds-generate-cell-set: 0.980998
+          seconds-clip: 1.70631
+          seconds-mapping: 0.346267
+          seconds-total: 2.05258
+        - trial-index: 9
+          seconds-mark-kept-points: 0.0714432
+          seconds-kept-points-mask-select: 0.00019007
+          seconds-point-data-scan-exclusive: 0.000243673
+          seconds-compute-point-maps: 0.0340558
+          seconds-compute-cell-stats: 0.568615
+          seconds-kept-or-clipped-cells-mask-select: 0.000396189
+          seconds-cell-data-scan-exclusive: 0.00231558
+          seconds-clipped-cells-mask-select: 0.0002058
+          seconds-extract-edges: 0.000578203
+          seconds-duplicate-to-unique-edge-map: 0.000300203
+          seconds-generate-cell-set: 0.97362
+          seconds-clip: 1.70027
+          seconds-mapping: 0.346986
+          seconds-total: 2.04726

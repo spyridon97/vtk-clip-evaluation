@@ -1,0 +1,43 @@
+- vtk-version: 9.5.2
+  viskores-version: 1.0.0
+  hostname: frontier10364
+  date: 2025-05-26T03:27:18-0400
+  device: TBB
+  num-threads: 1
+  input-file: /ccs/home/spyridon97/Data/CX-1.vtu
+  topology-connections: regular
+  num-input-points: 8178070
+  num-input-cells: 16159042
+  percentage: 0.8
+  clip-origin: 0.113061, -0.000000, 0.731159
+  clip-normal: 1.000000, 0.000000, 0.000000
+  dataset-memory-used: 1609584
+  experiments:
+    - algorithm-name: DP-Batch-Clip
+      batch-size: 6
+      num-output-points: 5309221
+      num-output-cells: 10441294
+      first-run-time: 1.37345
+	Command being timed: "/lustre/orion/csc143/scratch/spyridon97/vtk-clip-evaluation/build/vtk-clip-evaluation -i /ccs/home/spyridon97/Data/CX-1.vtu -d TBB -t 1 --dp-batch-clip -b 6 -p 0.8 -n 0"
+	User time (seconds): 1.68
+	System time (seconds): 0.48
+	Percent of CPU this job got: 77%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:02.78
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2433484
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 571707
+	Voluntary context switches: 1217
+	Involuntary context switches: 526
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
